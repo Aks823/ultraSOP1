@@ -38,6 +38,8 @@
     .footer{padding:28px 0;color:#6B7280;border-top:1px solid var(--border)}
     .appwrap{margin:32px 0}
     .appshell{display:grid;grid-template-columns:280px 1fr;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;background:#fff}
+    /* let the shell span the container’s width */
+#generator .appshell { width:100%; }
     .aside{border-right:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:8px}
     .tabbtn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer}
     .tabbtn.active{border-color:var(--orange);box-shadow:0 0 0 2px rgba(255,122,26,.24)}
@@ -573,47 +575,6 @@ body::after,
 }
 @media (max-width: 560px){
   #hero-cards .hl-grid{ grid-template-columns: 1fr; }
-}
-
-/* Keep generator centered and same width as .container */
-.section-title,
-.section-sub{
-  max-width: 1200px;    /* or just remove these rules entirely */
-  margin-left: auto;
-  margin-right: auto;
-  padding: 0 20px;
-}
-
-/* Belt-and-suspenders: center the app grid itself */
-#generator .appshell{
-  max-width: 1200px;    /* matches .container */
-  margin: 0 auto;       /* ensures centering */
-}
-
-/* ---- Center the Generator shell, reliably ---- */
-#generator{
-  display: grid;            /* lets us center its children */
-  justify-items: center;    /* centers the h2, sub, and .appshell */
-}
-
-#generator .appshell{
-  /* give it a finite width so centering can actually happen */
-  width: min(1200px, 100%); /* match your .container max */
-  margin-inline: auto;      /* extra belt-and-suspenders */
-}
-
-/* Grid min-size quirk: allow columns to shrink within the shell */
-#generator .aside,
-#generator .main{
-  min-width: 0;
-}
-
-/* optional: if you want the header rows to span the same width as the shell */
-#generator .section-title,
-#generator .section-sub{
-  width: min(1200px, 100%);
-  margin-inline: auto;
-  padding: 0 20px;
 }
 
   </style>
