@@ -641,6 +641,22 @@ body::after,
   #generator{ max-width: 100%; }
 }
 
+/* all your existing CSS … */
+
+    /* === OVERRIDE: Center the Generator === */
+    #generator{
+      max-width: 980px !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      padding: 0 12px; /* small side gutters */
+    }
+    /* (optional, keeps the grid itself constrained too) */
+    #generator .appshell{
+      max-width: 980px !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+
   </style>
 </head>
 <body>
