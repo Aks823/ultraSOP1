@@ -652,7 +652,46 @@ body::after,
   font-size: 16px;
   margin: 0 auto 18px;
 }
-   
+
+    /* Sidebar quick templates */
+.qtpl { margin-top: 10px; }
+.qtpl .qtpl-title { font-size: 12px; color: #6B7280; margin: 8px 0 6px; }
+.qtpl-list { display: grid; gap: 6px; }
+.qtpl-btn{
+  display:block; width:100%;
+  text-align:left;
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:13px;
+  cursor:pointer;
+}
+.qtpl-btn:hover{ background:#fffdf8; }
+
+/* Step row compact polish (keeps things elegant, not cramped) */
+#steps-list .steprow{ padding:10px; }
+#steps-list .step-title{ font-size:14px; }
+#steps-list .step-details{ margin-top:6px; }
+
+/* Chip buttons for optional controls */
+.chipbtn{
+  border:1px solid #FFD8BF;
+  background:#fff;
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+}
+.chipbtn.active{
+  background:#FFF2E5;
+  border-color:#FFB47A;
+  color:#7a3b0a;
+}
+
+/* Wraps that hold optional inputs (hidden until toggled) */
+.ownergroup,.durgroup{ display:none; margin-top:6px; }
+.ownergroup.show,.durgroup.show{ display:block; }
+
   </style>
 </head>
 <body>
@@ -837,6 +876,11 @@ body::after,
         <button class="tabbtn active" data-tab="editor">Editor</button>
         <button class="tabbtn" data-tab="versions">Versions</button>
         <button class="tabbtn" data-tab="settings">Settings</button>
+        <div class="qtpl" id="qtpl">
+  <div class="qtpl-title">Quick templates</div>
+  <div id="qtpl-list" class="qtpl-list"></div>
+</div>
+
       </aside>
 
       <div class="main">
@@ -1343,23 +1387,41 @@ body::after,
       (sop.steps||[]).forEach((st,i)=>{
         const title = typeof st==="string" ? st : (st.title||"");
         const li=document.createElement("li");
-        li.className = "steprow";
+li.className = "steprow";
+
+const isObj = typeof st === "object";
+const title = isObj ? (st.title || "") : (st || "");
+const hasOwner = isObj && st.ownerRole && st.ownerRole.trim() !== "";
+const hasDur   = isObj && (st.durationMin || st.durationMin === 0);
+
 li.innerHTML =
   '<span class="stepnum">'+(i+1)+'</span>' +
   '<div style="display:grid;gap:6px">' +
     '<input class="input step-title" value="'+title.replace(/"/g,'&quot;')+'"/>' +
-    '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
-      '<input class="input step-owner" data-idx="'+i+'" placeholder="Owner role (optional)" style="max-width:240px" />' +
-      '<input class="input step-duration" data-idx="'+i+'" type="number" min="0" placeholder="Duration (min)" style="max-width:160px" />' +
+
+    // owner group (hidden by default unless value exists)
+    '<div class="ownergroup'+(hasOwner ? ' show' : '')+'" data-idx="'+i+'">' +
+      '<input class="input step-owner" placeholder="Owner role (optional)" value="'+(hasOwner ? st.ownerRole.replace(/"/g,'&quot;') : '')+'" style="max-width:240px" />' +
     '</div>' +
-    '<textarea class="textarea step-details" data-idx="'+i+'" placeholder="Details (optional)" style="display:none"></textarea>' +
+
+    // duration group (hidden by default unless value exists)
+    '<div class="durgroup'+(hasDur ? ' show' : '')+'" data-idx="'+i+'">' +
+      '<input class="input step-duration" type="number" min="0" placeholder="Duration (min)" value="'+(hasDur ? st.durationMin : '')+'" style="max-width:160px" />' +
+    '</div>' +
+
+    // optional long details (same behavior as your "More" toggle)
+    '<textarea class="textarea step-details" data-idx="'+i+'" placeholder="Details (optional)" style="display:'+(isObj && st.details ? 'block' : 'none')+'">'+(isObj && st.details ? st.details.replace(/</g,"&lt;") : "")+'</textarea>' +
   '</div>' +
-  '<div style="display:flex;gap:6px;align-items:center">' +
+
+  '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+    '<button class="btn chipbtn'+(hasOwner?' active':'')+'" data-owner="'+i+'">Owner</button>' +
+    '<button class="btn chipbtn'+(hasDur?' active':'')+'" data-duration="'+i+'">Duration</button>' +
     '<button class="btn" data-up="'+i+'">↑</button>' +
     '<button class="btn" data-down="'+i+'">↓</button>' +
     '<button class="btn" data-more="'+i+'">More</button>' +
     '<button class="btn" data-rm="'+i+'">✕</button>' +
   '</div>';
+
 
         
         ul.appendChild(li);
