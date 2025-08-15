@@ -616,47 +616,6 @@ body::after,
   padding: 0 20px;
 }
 
-    /* Center the UltraSOP Generator section as a column */
-#generator{
-  max-width: 980px;      /* pick your target width (900–1040 works well) */
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;    /* ← centers the whole section */
-  padding: 0 12px;       /* small gutters on mobile */
-}
-
-/* Keep the inner shell from stretching wider than the section */
-#generator .appshell{
-  width: 100%;
-  margin: 0 auto;
-}
-
-/* Grid safety so the right pane can shrink */
-#generator .aside,
-#generator .main{
-  min-width: 0;
-}
-
-@media (max-width: 1040px){
-  #generator{ max-width: 100%; }
-}
-
-/* all your existing CSS … */
-
-    /* === OVERRIDE: Center the Generator === */
-    #generator{
-      max-width: 980px !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-      padding: 0 12px; /* small side gutters */
-    }
-    /* (optional, keeps the grid itself constrained too) */
-    #generator .appshell{
-      max-width: 980px !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-    }
-
   </style>
 </head>
 <body>
