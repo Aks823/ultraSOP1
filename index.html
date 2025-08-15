@@ -577,6 +577,29 @@ body::after,
   #hero-cards .hl-grid{ grid-template-columns: 1fr; }
 }
 
+    /* === Generator centering: use the v1 layout === */
+.app {
+  margin: 60px auto;       /* center */
+  max-width: 1200px;       /* same page width as the rest */
+  padding: 0 20px;
+}
+
+.app .appshell,            /* your current shell is named .appshell */
+.app__shell {              /* keep compatibility if you keep the v1 class */
+  width: 100%;             /* fill the centered wrapper */
+  display: grid;
+  grid-template-columns: minmax(280px, 280px) minmax(0, 1fr); /* robust */
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  background: #fff;
+}
+
+/* prevent grid children from forcing shrink */
+.app .aside,
+.app .main { min-width: 0; }
+
   </style>
 </head>
 <body>
@@ -751,8 +774,7 @@ body::after,
 </section>
 
   <!-- APP DEMO -->
-  <section class="container appwrap" id="app">
-    <section id="generator">
+  <section id="app" class="app">
   <h2 class="section-title">UltraSOP Generator</h2>
   <p class="section-sub">Record, paste, or import — then edit steps and save versions.</p>
 
