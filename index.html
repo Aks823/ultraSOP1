@@ -543,6 +543,18 @@ body::after,
   color: #6B7280;
 }
 
+  /* Center the generator card + give it a sane width */
+#generator .appshell{
+  max-width: 1040px;                 /* tune 1000–1100 if you like */
+  margin: 0 auto;                    /* centers the card */
+  grid-template-columns: 300px minmax(600px, 1fr);  /* balanced columns */
+}
+
+/* Keep your 1-column stack on small screens */
+@media (max-width:980px){
+  #generator .appshell{ grid-template-columns: 1fr; }
+}
+
     /* === Hero highlight cards (fresh, scoped) === */
 #hero-cards{
   margin: 22px auto 8px;
