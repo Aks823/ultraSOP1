@@ -543,18 +543,6 @@ body::after,
   color: #6B7280;
 }
 
-  /* Center the generator card + give it a sane width */
-#generator .appshell{
-  max-width: 1040px;                 /* tune 1000–1100 if you like */
-  margin: 0 auto;                    /* centers the card */
-  grid-template-columns: 300px minmax(600px, 1fr);  /* balanced columns */
-}
-
-/* Keep your 1-column stack on small screens */
-@media (max-width:980px){
-  #generator .appshell{ grid-template-columns: 1fr; }
-}
-
     /* === Hero highlight cards (fresh, scoped) === */
 #hero-cards{
   margin: 22px auto 8px;
@@ -604,6 +592,22 @@ body::after,
 @media (max-width: 560px){
   #hero-cards .hl-grid{ grid-template-columns: 1fr; }
 }
+
+/* Keep generator centered and same width as .container */
+.section-title,
+.section-sub{
+  max-width: 1200px;    /* or just remove these rules entirely */
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 20px;
+}
+
+/* Belt-and-suspenders: center the app grid itself */
+#generator .appshell{
+  max-width: 1200px;    /* matches .container */
+  margin: 0 auto;       /* ensures centering */
+}
+
 
   </style>
 </head>
