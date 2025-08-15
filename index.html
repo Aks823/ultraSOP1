@@ -525,24 +525,6 @@ body::after,
 .acc-panel-inner ul{ margin:10px 0 0 18px; }
 .acc-panel-inner li{ margin:4px 0; }
 
-    /* ===== UltraSOP Generator layout (center + tidy) ===== */
-
-/* Heading */
-.section-title{
-  max-width: 1100px;
-  margin: 40px auto 6px;
-  padding: 0 16px;
-  font-size: 28px;
-  line-height: 1.25;
-  color: #0F172A;
-}
-.section-sub{
-  max-width: 1100px;
-  margin: 0 auto 20px;
-  padding: 0 16px;
-  color: #6B7280;
-}
-
     /* === Hero highlight cards (fresh, scoped) === */
 #hero-cards{
   margin: 22px auto 8px;
@@ -608,6 +590,31 @@ body::after,
   margin: 0 auto;       /* ensures centering */
 }
 
+/* ---- Center the Generator shell, reliably ---- */
+#generator{
+  display: grid;            /* lets us center its children */
+  justify-items: center;    /* centers the h2, sub, and .appshell */
+}
+
+#generator .appshell{
+  /* give it a finite width so centering can actually happen */
+  width: min(1200px, 100%); /* match your .container max */
+  margin-inline: auto;      /* extra belt-and-suspenders */
+}
+
+/* Grid min-size quirk: allow columns to shrink within the shell */
+#generator .aside,
+#generator .main{
+  min-width: 0;
+}
+
+/* optional: if you want the header rows to span the same width as the shell */
+#generator .section-title,
+#generator .section-sub{
+  width: min(1200px, 100%);
+  margin-inline: auto;
+  padding: 0 20px;
+}
 
   </style>
 </head>
