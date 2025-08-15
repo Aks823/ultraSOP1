@@ -600,6 +600,59 @@ body::after,
 .app .aside,
 .app .main { min-width: 0; }
 
+ /* =========================
+   UltraSOP Generator polish
+   ========================= */
+
+/* 1) Widen the generator on desktops (~80% viewport) */
+@media (min-width: 1100px){
+  .app{
+    width: 80vw;            /* target: ~80% of screen width */
+    max-width: 1600px;      /* prevent silly-wide on ultrawide */
+    margin: 48px auto;      /* tidy spacing above/below */
+    padding: 0 20px;        /* keep page gutters */
+  }
+  .app .appshell{ width: 100%; }
+}
+
+/* Keep grid children from forcing shrink */
+.app .aside,
+.app .main,
+.app .editor > *{ min-width: 0; }
+
+/* 2) Premium “signature” look: orange gradient ring + depth */
+.app .appshell{
+  border: 1px solid transparent;                  /* needed for the gradient ring */
+  background:
+    linear-gradient(#fff, #fff) padding-box,      /* actual card surface */
+    linear-gradient(135deg, #FFD1A6, #FF7A1A)     /* brand ring */
+      border-box;
+  box-shadow:
+    0 20px 60px rgba(17,24,39,.10),               /* soft elevation */
+    0 0 0 6px rgba(255,122,26,.06);               /* subtle orange glow */
+  border-radius: 16px;
+}
+
+/* (Optional) a touch more room on the left editor to reduce wrapping.
+   Swap to 1fr 1fr if you prefer true 50/50. */
+.app .editor{
+  grid-template-columns: minmax(520px, 1.25fr) minmax(420px, .95fr);
+}
+
+/* 3) Center and emphasize the generator heading + subheading */
+.app .section-title{
+  text-align: center;
+  font-size: 34px;            /* was smaller; this grabs attention */
+  line-height: 1.2;
+  margin: 8px auto 6px;
+}
+.app .section-sub{
+  text-align: center;
+  color: #6B7280;
+  font-size: 16px;
+  margin: 0 auto 18px;
+}
+   
   </style>
 </head>
 <body>
