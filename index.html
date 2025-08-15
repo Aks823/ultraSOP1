@@ -1,0 +1,1950 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UltraSOP — SOPs from voice & notes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --orange:#FF7A1A; --orange-100:#FFF3E9; --orange-200:#FFE5D1;
+      --bg:#FFFFFF; --text:#111827; --muted:#6B7280; --border:#E5E7EB;
+      --radius:12px; --shadow:0 8px 30px rgba(17,24,39,.08);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+    a{color:inherit;text-decoration:none}
+    .nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:24px;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.9);backdrop-filter:saturate(1.1) blur(8px)}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800}
+    .logo{width:28px;height:28px}
+    .navlinks{display:flex;gap:18px;color:#374151}
+    .btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:999px;padding:10px 14px;cursor:pointer}
+    .btn--cta{background:var(--orange);border-color:var(--orange);color:#111827;box-shadow:0 8px 24px rgba(255,122,26,.35)}
+    .container{max-width:1200px;margin:0 auto;padding:0 20px}
+    .hero{padding:56px 0 24px}
+    .hero h1{font-size:44px;line-height:1.1;margin:0 0 12px}
+    .hero p{color:var(--muted);margin:0 0 18px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 22px}
+    .chip{background:var(--orange-100);border:1px solid var(--orange-200);color:#7a3b0a;padding:6px 10px;border-radius:999px;font-size:12px}
+    .grid{display:grid;gap:16px}
+    .features{grid-template-columns:repeat(3,1fr);margin:28px 0 8px}
+    .card{border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px;background:#fff}
+    .muted{color:var(--muted)}
+    .section{padding:32px 0}
+    .how{grid-template-columns:repeat(3,1fr)}
+    .pricing{grid-template-columns:repeat(3,1fr)}
+    .footer{padding:28px 0;color:#6B7280;border-top:1px solid var(--border)}
+    .appwrap{margin:32px 0}
+    .appshell{display:grid;grid-template-columns:280px 1fr;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;background:#fff}
+    .aside{border-right:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:8px}
+    .tabbtn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer}
+    .tabbtn.active{border-color:var(--orange);box-shadow:0 0 0 2px rgba(255,122,26,.24)}
+    .main{display:flex;flex-direction:column;min-height:520px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+    .search{max-width:380px;width:100%;border:1px solid var(--border);border-radius:999px;padding:10px 12px}
+    .toolbar{display:flex;gap:10px}
+    .tab{display:none;padding:16px}
+    .tab.visible{display:block}
+    /* Editor */
+    .editor{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .lbl{display:block;font-size:12px;color:var(--muted);margin:8px 0 6px}
+    .input,.textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px}
+    .textarea{min-height:96px}
+    .steps{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
+    .steprow{border:1px solid var(--border);border-radius:12px;padding:10px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;box-shadow:0 8px 30px rgba(17,24,39,.06)}
+    .stepnum{width:28px;height:28px;display:grid;place-items:center;border-radius:999px;background:var(--orange-100);font-weight:600;color:#7a3b0a}
+    .preview{border:1px solid var(--border);border-radius:12px;padding:12px;min-height:260px;background:linear-gradient(180deg,#fff,#fff,#fff7f0)}
+    .sopbox{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap}
+    /* Modal + overlay + toast */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.32);display:none;align-items:center;justify-content:center;padding:20px}
+    .modal.show{display:flex}
+    .dialog{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);max-width:760px;width:100%}
+    .dialog-h{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+    .dialog-b{padding:14px 16px}
+    .dialog-f{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+    .seg{display:flex;gap:6px;margin-bottom:10px}
+    .seg button{border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 12px;cursor:pointer}
+    .seg .active{border-color:var(--orange);background:#fff7f0}
+    .err{border:1px solid #fecaca;background:#fef2f2;border-radius:12px;padding:10px;margin-top:10px;color:#991b1b}
+    .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:40}
+    .overlay.show{display:flex}
+    .overlay .box{background:#111827;color:#fff;padding:14px 16px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.3);display:flex;align-items:center;gap:10px}
+    .spin{display:inline-block;width:18px;height:18px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 8px 30px rgba(17,24,39,.2);opacity:0;pointer-events:none;transition:opacity .15s ease}
+    .toast.show{opacity:1}
+    .metrics{font-size:12px;color:var(--muted)}
+    /* Responsive */
+    @media (max-width:980px){
+      .features,.how,.pricing{grid-template-columns:1fr}
+      .appshell{grid-template-columns:1fr}
+      .aside{border-right:none;border-bottom:1px solid var(--border)}
+      .editor{grid-template-columns:1fr}
+    }
+
+    /* --- S1: Background & card polish (UltraSOP) --- */
+body{
+  background:
+    linear-gradient(to bottom, #FFFFFF 0%, #FFF6F0 28%, #FFE7D1 62%, rgba(255,122,26,.14) 100%);
+}
+
+
+.card{
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+}
+
+/* animated marquee (logos / words) */
+.marquee{
+  overflow:hidden; position:relative; width:100%;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+.marquee__track{
+  display:flex;
+  gap:56px;               /* more breathing room between names */
+  align-items:center;
+  white-space:nowrap;
+  will-change: transform;
+  padding:8px 0;          /* spacing so it doesn’t “collide” with the label */
+  animation: marquee-scroll 26s linear infinite;
+}
+.marquee__track:hover{ animation-play-state: paused; }
+@keyframes marquee-scroll{
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); } /* duplicate row for seamless loop */
+}
+.marquee__item{
+  font-weight:700; color:#6B7280; opacity:.9; /* muted gray “logo text” */
+}
+    #social-proof{ text-align:center; }
+
+#social-proof .muted{
+  display:block;
+  text-align:center;
+  margin:0 auto 12px;    /* space under the “Trusted by…” label */
+}
+
+#social-proof .marquee{
+  margin:8px auto 28px;  /* extra space below the marquee */
+  max-width:1200px;      /* keeps the row tidy on big screens */
+}
+
+/* responsive */
+    /* H1: hero chips + accent + benefit spacing */
+.hero .chip{
+  background:#fff;
+  color:#0F172A;
+  border:1px solid rgba(255,122,26,.45);           /* dark-orange stroke */
+  box-shadow:0 0 0 3px rgba(255,122,26,.12),
+             0 8px 18px rgba(255,122,26,.18);      /* warm glow */
+  border-radius:999px;
+  padding:6px 12px;
+  font-weight:600;
+}
+.accent{ color:#FF7A1A; }                          /* matches your CTA orange */
+/* Force hero highlight cards to center */
+
+
+    /* S3: Testimonials marquee */
+.testimonials{ padding:24px 0 12px; }
+.tmarquee{
+  overflow:hidden; position:relative; width:100%;
+}
+    /* Edge fades via overlays (safer than mask) */
+.tmarquee::before,
+.tmarquee::after{
+  content:"";
+  position:absolute;
+  top:0; bottom:0;
+  width:64px;
+  pointer-events:none;
+}
+.tmarquee::before{
+  left:0;
+  background:linear-gradient(to right, #FFFFFF, rgba(255,255,255,0));
+}
+.tmarquee::after{
+  right:0;
+  background:linear-gradient(to left, #FFFFFF, rgba(255,255,255,0));
+}
+
+.ttrack{
+  display:flex; gap:16px; align-items:stretch; white-space:nowrap;
+  will-change: transform;
+  padding:8px 0;
+  animation: testimonial-scroll 38s linear infinite;
+}
+.ttrack:hover{ animation-play-state: paused; }
+
+@keyframes testimonial-scroll{
+  from{ transform: translateX(0); }
+  to  { transform: translateX(-50%); } /* duplicate row for seamless loop */
+}
+
+.tcard{
+  display:flex; flex-direction:column; justify-content:space-between;
+  flex: 0 0 320px;        /* <- fixed width track for each card */
+  width:320px;            /* keep width explicit */
+  background:#fff; border:1px solid var(--border); border-radius:14px;
+  box-shadow:0 10px 26px rgba(15,23,42,.06);
+  padding:14px;
+}
+
+.tquote{
+  color:#1F2937;
+  line-height:1.45;
+  white-space: normal;      /* wrap lines */
+  overflow-wrap: anywhere;  /* break long words if needed */
+  word-break: break-word;   /* extra safety */
+}
+
+.tmeta{ display:flex; align-items:center; gap:10px; margin-top:12px; }
+.tavatar{
+  width:36px; height:36px; border-radius:50%;
+  background:#FFE6D4;
+  display:grid; place-items:center;
+  font-weight:700; color:#FF7A1A;
+}
+
+.trating{ color:#F59E0B; font-size:14px; }
+
+/* ===== S4b — How it works (precise rail + bigger text) ===== */
+
+:root{
+  --how-o: #FF7A1A;       /* brand orange */
+  --how-line1:#FFD8BD;
+  --how-line2:#FFB07A;
+}
+
+/* section spacing */
+.how2{ padding:64px 0 40px; }
+.how2 h2{ margin:0 0 8px; }
+.how2 .hint{ color:#A7ADB7; margin:-2px 0 18px; }
+
+/* robust two-column grid (renamed to avoid collisions) */
+.howWrap{
+  display:grid; gap:48px; align-items:start;
+  grid-template-columns: minmax(380px, 640px) 1fr;
+}
+@media(max-width:980px){
+  .howWrap{ grid-template-columns:1fr; gap:24px; }
+}
+
+/* LEFT: timeline column */
+.hsteps{
+  position:relative;
+  /* these are set by JS precisely so the line starts/ends under the dots */
+  --lineTop: 18px;
+  --lineBottom: 18px;
+  padding: 0;                                 /* no extra padding */
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+/* the line itself */
+.hsteps::before{
+  content:"";
+  position:absolute;
+  left: 20px;                 /* center of the rail (grid col 1 is 40px wide) */
+  top: var(--lineTop);
+  bottom: var(--lineBottom);
+  width:2px;
+  background:linear-gradient(var(--how-line1), var(--how-line2));
+  opacity:.95;
+  pointer-events:none;
+}
+
+.hstep{
+  display:grid;
+  grid-template-columns: 40px 1fr;            /* 40px rail (dot), then text */
+  gap:18px;
+  padding:20px 0;                              /* taller rows = more section height */
+  background:none; border:0; text-align:left; cursor:pointer;
+  transition: opacity .25s ease, transform .12s ease;
+}
+.hstep:not(.active){ opacity:.55; }
+.hstep:hover{ opacity:.82; }
+
+/* Align the dot with the “Step …” title baseline */
+.hstep .dot{
+  /* was: place-self:center; */
+  justify-self: center;     /* keep it centered in the rail column */
+  align-self: start;        /* anchor to top of the grid row */
+
+  width:20px; height:20px; border-radius:50%;
+  background: var(--how-o);
+  box-shadow: 0 0 6px rgba(255,122,26,.22);
+  position:relative;
+
+  /* fine-tune vertical position; negative = move dot up */
+  margin-top: 3px;         /* try -6px to -10px to taste */
+}
+
+
+.hstep .dot::after{                  /* pulsing ring only when active */
+  content:""; position:absolute; inset:-6px; border-radius:50%;
+  border:2px solid rgba(255,122,26,.38);
+  transform: scale(.78); opacity:0;
+}
+.hstep.active .dot::after{ animation:howRing 1.6s cubic-bezier(.2,.8,.2,1) infinite; opacity:1; }
+@keyframes howRing{ 0%{transform:scale(.78);opacity:.95} 80%{transform:scale(1.35);opacity:0} 100%{opacity:0} }
+
+/* bigger type to match the right-side card height */
+.hstep .title{
+  margin:0 0 8px;
+  font-size:22px;
+  line-height:1.25;
+  color:#0F172A;
+  font-weight:700;
+}
+.hstep p{
+  margin:0;
+  color:#556;
+  font-size:16px;
+  line-height:1.6;
+  max-width:560px;
+}
+
+/* RIGHT: media card + glow */
+.hmedia{ position:relative; }
+.hglow{
+  position:absolute; inset:-60px -40px -40px -40px;
+  background:radial-gradient(520px 360px at 60% 30%, rgba(255,122,26,.16), rgba(255,122,26,0) 60%);
+  filter:blur(6px); pointer-events:none;
+}
+.hshot{
+  position:relative; background:#fff; border:1px solid var(--border);
+  border-radius:18px; box-shadow:0 22px 50px rgba(15,23,42,.12);
+  overflow:hidden;
+}
+.hshot img{ display:block; width:100%; height:auto; }
+.hshot .ph{
+  display:grid; place-items:center; height:460px; color:#8A8F98; text-align:center;
+}
+.hshot .ph small{ display:block; color:#A7ADB7; }
+
+    /* ==== Force a pure-white page (no gradients) ==== */
+:root{
+  /* match any masking rings we added around dots */
+  --how-bg-mask: #ffffff;
+}
+
+/* Global page background */
+html, body{
+  background: #fff !important;
+  background-image: none !important;
+}
+
+/* Common sections we tinted earlier – make them flat white */
+.hero,
+.how2,
+.features,
+.pricing,
+.resources,
+.container,
+.section,
+.page,
+.appshell{
+  background: #fff !important;
+  background-image: none !important;
+}
+
+/* Kill any gradient overlays/pseudo-elements if they exist */
+body::before,
+body::after,
+.hero::before,
+.hero::after,
+.how2::before,
+.how2::after{
+  content: none !important;
+  background: none !important;
+}
+
+/* Optional: if the How section glow is visible, hide it */
+.hglow{ display: none !important; }
+
+    /* ==== Pricing (UltraSOP theme) ====================================== */
+:root{
+  --u-orange:#FF7A1A;
+  --u-txt:#1F2937;
+  --u-sub:#6B7280;
+  --u-bor:#E5E7EB;
+  --u-bg:#FFFFFF;
+}
+
+.pricing2{ padding:72px 0; background:#fff; }
+.pricing2 .wrap{ max-width:1100px; margin:0 auto; padding:0 20px; }
+.pricing2 h2{ font-size:34px; line-height:1.15; color:var(--u-txt); margin:0 0 12px; }
+.pricing2 p.sub{ color:var(--u-sub); margin:0 0 28px; }
+
+/* Toggle */
+.pricing2 .toggle{
+  display:flex; align-items:center; gap:12px; margin:8px 0 28px;
+  color:var(--u-sub); user-select:none;
+}
+.pricing2 .switch{
+  position:relative; width:54px; height:30px; background:#F3F4F6; border-radius:999px;
+  box-shadow: inset 0 0 0 1px var(--u-bor);
+}
+.pricing2 .switch i{
+  position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%;
+  background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.12);
+  transition: transform .22s ease-out;
+}
+.pricing2 input[type=checkbox]{ position:absolute; opacity:0; inset:0; cursor:pointer; }
+.pricing2 input[type=checkbox]:checked + .switch i{ transform: translateX(24px); }
+.pricing2 .save{ font-size:12px; color:#10B981; background:#ECFDF5; border:1px solid #D1FAE5; padding:2px 8px; border-radius:999px; }
+
+/* Grid */
+.pricing2 .grid{
+  display:grid; grid-template-columns: repeat(3,1fr); gap:20px;
+}
+@media (max-width: 900px){ .pricing2 .grid{ grid-template-columns: 1fr; } }
+
+/* Card */
+.pcard{
+  background:var(--u-bg);
+  border:1px solid var(--u-bor);
+  border-radius:14px;
+  padding:22px 22px 20px;
+  box-shadow: 0 8px 30px rgba(17,24,39,.06);
+  transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+}
+.pcard:hover{ transform: translateY(-2px); border-color:#FDE5D4; box-shadow: 0 14px 36px rgba(17,24,39,.08); }
+.pcard .badge{
+  display:inline-block; font-size:12px; color:#A15D27; background:#FFF2E9; border:1px solid #FFE3D0;
+  padding:3px 8px; border-radius:999px; margin-bottom:10px;
+}
+.pcard h3{ margin:8px 0 2px; font-size:20px; color:var(--u-txt); }
+.pcard .desc{ color:var(--u-sub); font-size:14px; margin:0 0 14px; }
+
+.pcard .price{ display:flex; align-items:baseline; gap:6px; margin:6px 0 12px; }
+.pcard .price .amt{ font-size:38px; font-weight:700; color:var(--u-txt); }
+.pcard .price .per{ color:var(--u-sub); }
+
+.pcard ul{ list-style:none; padding:0; margin:12px 0 16px; display:grid; gap:8px; }
+.pcard li{ display:flex; gap:10px; color:var(--u-txt); }
+.pcard li i{
+  width:18px; height:18px; border-radius:50%; background:#FFECE0; display:inline-grid; place-items:center;
+  color:var(--u-orange); font-size:12px; transform: translateY(1px);
+}
+
+/* Buttons (local to pricing) */
+.pcard .btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  height:40px; padding:0 14px; border-radius:10px; font-weight:600; border:1px solid var(--u-bor);
+  color:var(--u-txt); background:#fff; transition: box-shadow .15s ease, transform .12s ease, border-color .15s ease;
+}
+.pcard .btn:hover{ transform:translateY(-1px); box-shadow:0 8px 22px rgba(17,24,39,.08); }
+.pcard .btn.primary{ background:var(--u-orange); color:#fff; border-color:#ffb485; }
+.pcard .btn.primary:hover{ box-shadow:0 12px 28px rgba(255,122,26,.25); }
+.pcard .btn.ghost{ background:#fff; color:var(--u-orange); border-color:#FFD8BF; }
+
+/* Business highlight */
+.pcard.business{ border-color:#FFD8BF; box-shadow: 0 10px 34px rgba(255,122,26,.10); }
+.pcard.business .badge{ background:#FFEDDF; border-color:#FFD8BF; color:#9A4D18; }
+
+    /* ===== FAQ / Accordion ===== */
+:root{
+  --brand:#FF7A1A;              /* Ultra Orange */
+  --surface:#ffffff;
+  --text:#0F172A;               /* dark slate text */
+  --muted:#6B7280;              /* secondary text */
+  --border:#E5E7EB;             /* soft border */
+}
+
+.faq{ padding:64px 0; }
+.faq .wrap{ max-width:960px; margin:0 auto; }
+.faq h2{
+  text-align:center;
+  font-weight:800;
+  font-size:32px;
+  letter-spacing:-.02em;
+  color:var(--text);
+  margin:0 0 20px;
+}
+.faq .kicker{
+  text-align:center;
+  color:var(--muted);
+  margin-bottom:28px;
+}
+
+/* container */
+.accordion{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 10px 26px rgba(15,23,42,.06);
+}
+
+/* one item */
+.acc-item + .acc-item{ border-top:1px solid var(--border); }
+.acc-item.open{ box-shadow:inset 3px 0 0 var(--brand); }
+
+/* header button */
+.acc-btn{
+  -webkit-tap-highlight-color:transparent;
+  width:100%;
+  background:var(--surface);
+  color:var(--text);
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px;
+  padding:18px 22px;
+  font-size:16px; font-weight:700;
+  border:0; outline:0; cursor:pointer;
+  transition:background 120ms ease-out;
+}
+.acc-btn:hover{ background:rgba(255,122,26,.06); }
+.acc-btn:focus-visible{ box-shadow:0 0 0 2px rgba(255,122,26,.35); border-radius:8px; }
+
+/* plus / minus icon */
+.acc-icon{ position:relative; width:22px; height:22px; flex:0 0 22px; }
+.acc-icon::before,
+.acc-icon::after{
+  content:""; position:absolute; left:50%; top:50%;
+  width:16px; height:2px; background:var(--brand);
+  transform:translate(-50%,-50%); transition:transform 120ms ease;
+}
+.acc-icon::after{ transform:translate(-50%,-50%) rotate(90deg); }
+.acc-btn[aria-expanded="true"] .acc-icon::after{ transform:translate(-50%,-50%) rotate(0deg); }
+
+/* panel */
+.acc-panel{
+  max-height:0; overflow:hidden;
+  transition:max-height 220ms ease;
+  background:linear-gradient(0deg, rgba(255,122,26,.06), rgba(255,122,26,.06)) no-repeat;
+}
+.acc-panel-inner{
+  padding:16px 22px 22px;
+  color:var(--muted);
+  line-height:1.6;
+}
+.acc-panel-inner ul{ margin:10px 0 0 18px; }
+.acc-panel-inner li{ margin:4px 0; }
+
+    /* ===== UltraSOP Generator layout (center + tidy) ===== */
+
+/* Heading */
+.section-title{
+  max-width: 1100px;
+  margin: 40px auto 6px;
+  padding: 0 16px;
+  font-size: 28px;
+  line-height: 1.25;
+  color: #0F172A;
+}
+.section-sub{
+  max-width: 1100px;
+  margin: 0 auto 20px;
+  padding: 0 16px;
+  color: #6B7280;
+}
+
+    /* === Hero highlight cards (fresh, scoped) === */
+#hero-cards{
+  margin: 22px auto 8px;
+  display: flex;
+  justify-content: center;
+}
+#hero-cards .hl-grid{
+  display: grid;
+  grid-template-columns: repeat(4, 260px);
+  gap: 16px;
+  width: max-content;     /* shrink-wrap to tracks */
+  margin: 0 auto;         /* center the whole block */
+}
+@media (max-width:1140px){ #hero-cards .hl-grid{ grid-template-columns: repeat(2,260px); } }
+@media (max-width:560px){  #hero-cards .hl-grid{ grid-template-columns: 1fr; width:100%; } }
+
+
+#hero-cards .hl-item{
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  transition: transform .12s ease-out, box-shadow .12s ease-out;
+}
+#hero-cards .hl-item:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(15,23,42,.08);
+}
+
+#hero-cards .hl-ico{
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  background: #FFE6D4;        /* brand-tinted chip */
+  color: #7a3b0a;
+  font-size: 14px; line-height: 1;
+}
+
+/* Responsive: 2-up on tablets, 1-up on phones */
+@media (max-width: 1140px){
+  #hero-cards .hl-grid{ grid-template-columns: repeat(2, 260px); }
+}
+@media (max-width: 560px){
+  #hero-cards .hl-grid{ grid-template-columns: 1fr; }
+}
+
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#FFB47A"/><stop offset="1" stop-color="#FF7A1A"/></linearGradient></defs>
+        <rect x="2" y="2" width="24" height="24" rx="8" fill="url(#g)"/>
+        <text x="14" y="19" text-anchor="middle" font-size="12" font-family="Inter, Arial" fill="white">U</text>
+      </svg>
+      UltraSOP
+    </div>
+    <div class="navlinks">
+      <a href="#product">Product</a>
+      <a href="#templates">Templates</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#resources">Resources</a>
+    </div>
+    <div class="navcta">
+      <button class="btn" id="nav-signin">Sign in</button>
+      <button class="btn btn--cta" id="nav-get">Get Started</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero container" id="product">
+  <div class="grid" style="grid-template-columns:1.1fr .9fr; gap:24px; align-items:center">
+    <!-- Left: existing copy + CTAs -->
+    <div>
+      <div class="chips">
+        <span class="chip">Voice → SOP</span>
+        <span class="chip">Built-in versioning</span>
+        <span class="chip">1-click PDF & share</span>
+      </div>
+      <h1>Turn voice & notes into <span class="accent">spotless SOPs</span> in minutes</h1>
+      <p>Turn messy instructions into beautiful, shareable playbooks. Record or paste, edit in seconds, save versions, and export a polished PDF.</p>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn btn--cta" id="hero-try">Try the Generator</button>
+        <button class="btn" id="hero-learn">Get Started Free</button>
+      </div>
+    </div>
+
+    <!-- Right: screenshot placeholder + auto-hide when img loads -->
+    <div>
+      <!-- Placeholder card (shows until image loads) -->
+      <div id="hero-shot-ph" class="card" style="height:320px; display:grid; place-items:center; text-align:center">
+        <div>
+          <div style="font-weight:700; margin-bottom:6px">Your screenshot goes here</div>
+          <div class="muted" style="font-size:12px">Upload <code>/assets/hero.png</code><br> (we’ll swap it in automatically)</div>
+        </div>
+      </div>
+      <!-- Real image (hidden until it loads; falls back to placeholder on error) -->
+      <img
+        id="hero-shot"
+        src="/assets/hero.png"
+        alt="UltraSOP — product preview"
+        style="display:none; width:100%; border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow)"
+        onload="this.style.display='block'; document.getElementById('hero-shot-ph').style.display='none';"
+        onerror="this.style.display='none'; document.getElementById('hero-shot-ph').style.display='grid';"
+      />
+    </div>
+  </div>
+</header>
+
+  <!-- Hero highlight cards (fresh) -->
+<section id="hero-cards" class="container" aria-label="Key benefits">
+  <div class="hl-grid">
+    <article class="hl-item">
+      <span class="hl-ico" aria-hidden="true">🎤</span>
+      <div>
+        <strong>Record or paste</strong>
+        <div class="muted small">Turn voice or notes into structured steps.</div>
+      </div>
+    </article>
+
+    <article class="hl-item">
+      <span class="hl-ico" aria-hidden="true">✏️</span>
+      <div>
+        <strong>Edit & reorder</strong>
+        <div class="muted small">Inline edits with ↑/↓ and quick delete.</div>
+      </div>
+    </article>
+
+    <article class="hl-item">
+      <span class="hl-ico" aria-hidden="true">🗂️</span>
+      <div>
+        <strong>Save versions</strong>
+        <div class="muted small">Snapshot with notes; restore anytime.</div>
+      </div>
+    </article>
+
+    <article class="hl-item">
+      <span class="hl-ico" aria-hidden="true">📄</span>
+      <div>
+        <strong>Export & share</strong>
+        <div class="muted small">Polished PDF and optional public link.</div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- S4b: How UltraSOP works -->
+<section class="container how2" id="how">
+  <h2>Here’s how UltraSOP works</h2>
+  <div class="hint">Hint: it’s incredibly easy!</div>
+
+  <div class="howWrap">
+    <!-- LEFT: steps -->
+<div class="hsteps" id="how-steps">
+  <!-- Step 1 -->
+  <button class="hstep active" type="button" aria-current="step" data-gif="/assets/how-1.gif">
+    <span class="dot" aria-hidden="true"></span>
+    <div class="txt">
+      <div class="title">Step 1: Capture any process</div>
+      <p>Record a quick voice note, upload audio, or paste rough notes. UltraSOP transcribes and pulls out key actions automatically.</p>
+    </div>
+  </button>
+
+  <!-- Step 2 -->
+  <button class="hstep" type="button" data-gif="/assets/how-2.gif">
+    <span class="dot" aria-hidden="true"></span>
+    <div class="txt">
+      <div class="title">Step 2: Generate the first draft</div>
+      <p>AI converts your capture into a structured SOP: clear steps, owners, prerequisites, checklists, and time estimates—plus quality warnings.</p>
+    </div>
+  </button>
+
+  <!-- Step 3 -->
+  <button class="hstep" type="button" data-gif="/assets/how-3.gif">
+    <span class="dot" aria-hidden="true"></span>
+    <div class="txt">
+      <div class="title">Step 3: Apply templates &amp; standards</div>
+      <p>Start from best-practice templates, auto-insert your team’s roles, and enforce required checks (SLA, QA, security) for audits.</p>
+    </div>
+  </button>
+
+  <!-- Step 4 -->
+  <button class="hstep" type="button" data-gif="/assets/how-4.gif">
+    <span class="dot" aria-hidden="true"></span>
+    <div class="txt">
+      <div class="title">Step 4: Refine, reorder &amp; version</div>
+      <p>Drag to reorder steps, edit inline, add screenshots and checks, then <strong>Save Version</strong> with notes. Restore any version with one click.</p>
+    </div>
+  </button>
+
+  <!-- Step 5 -->
+  <button class="hstep" type="button" data-gif="/assets/how-5.gif">
+    <span class="dot" aria-hidden="true"></span>
+    <div class="txt">
+      <div class="title">Step 5: Export &amp; share securely</div>
+      <p>Download a polished PDF, push to Notion, or share a read-only public link you can revoke anytime.</p>
+    </div>
+  </button>
+</div>
+
+    <!-- RIGHT: media -->
+    <div class="hmedia">
+      <div class="hglow" aria-hidden="true"></div>
+      <div class="hshot">
+        <img src="/assets/how.gif" alt="UltraSOP demo"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';">
+        <div class="ph" style="display:none">
+          <div>
+            <strong>Your demo GIF goes here</strong><br/>
+            <small>Upload <code>/assets/how.gif</code> — we’ll load it automatically.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+  <!-- APP DEMO -->
+  <section class="container appwrap" id="app">
+    <section id="generator">
+  <h2 class="section-title">UltraSOP Generator</h2>
+  <p class="section-sub">Record, paste, or import — then edit steps and save versions.</p>
+
+  <div class="appshell">
+
+      <aside class="aside">
+        <button class="tabbtn active" data-tab="editor">Editor</button>
+        <button class="tabbtn" data-tab="versions">Versions</button>
+        <button class="tabbtn" data-tab="settings">Settings</button>
+      </aside>
+
+      <div class="main">
+        <div class="topbar">
+          <input class="search" placeholder="Search SOPs…" />
+          <div class="toolbar">
+            <button class="btn" id="btn-open-modal">Generate SOP</button>
+            <button class="btn" id="btn-save">Save Version</button>
+            <button class="btn" id="btn-dup">Duplicate</button>
+            <button class="btn btn--cta" id="btn-new">New SOP</button>
+          </div>
+        </div>
+
+        <div class="tab visible" id="tab-editor">
+          <div class="editor">
+            <div>
+              <label class="lbl" for="sop-title">Title</label>
+              <input id="sop-title" class="input" />
+              <label class="lbl" for="sop-summary">Summary</label>
+              <textarea id="sop-summary" class="textarea" rows="3"></textarea>
+              <div class="lbl" style="margin-top:12px">Steps</div>
+<button class="btn" id="btn-add-step" style="margin:6px 0 8px">Add Step</button>
+<ul id="steps-list" class="steps"></ul>
+            </div>
+            <div>
+              <div class="lbl">Preview</div>
+              <div id="preview" class="preview"></div>
+              <button class="btn" id="btn-download-pdf" style="margin-top:8px">Download PDF</button>
+              <div style="margin-top:12px">
+                <div class="lbl" style="display:none">SOP JSON</div>
+                <pre id="jsonbox" class="sopbox" style="display:none"></pre>
+              </div>
+              <div class="metrics" id="metrics">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab" id="tab-versions">
+  <div class="lbl">Version history</div>
+  <div id="versions-list" class="grid" style="grid-template-columns:1fr; gap:10px"></div>
+  <p class="muted" style="font-size:12px">Tip: use “Save Version” in the top bar to create a snapshot.</p>
+</div>
+        <div class="tab" id="tab-settings"><p class="muted" style="padding:8px 2px">Settings (mock).</p></div>
+      </div>
+    </div>
+      </section>
+    <p class="muted" style="margin:8px 2px">Front-end demo — data stays in your browser; generation calls a Netlify Function.</p>
+  </section>
+
+  <!-- TEMPLATES -->
+  <section class="container section" id="templates">
+  <h3>Popular templates</h3>
+  <div class="grid features" id="templates-grid">
+    <div class="card">
+      <strong>New Employee Onboarding</strong>
+      <p class="muted">Welcome email, access, IT & security, buddy, week-1 plan.</p>
+      <button class="btn" data-template="onboarding">Use template</button>
+    </div>
+    <div class="card">
+      <strong>Client Onboarding (Agency)</strong>
+      <p class="muted">Kickoff, assets, tracking, approvals, weekly cadence.</p>
+      <button class="btn" data-template="agency_client_onboarding">Use template</button>
+    </div>
+    <div class="card">
+      <strong>Minor Website Outage</strong>
+      <p class="muted">Triage, comms, rollback, verify, post-incident notes.</p>
+      <button class="btn" data-template="minor_outage">Use template</button>
+    </div>
+    <div class="card">
+      <strong>Google Ads Weekly Routine</strong>
+      <p class="muted">Search terms, negatives, budgets, tests, report, log.</p>
+      <button class="btn" data-template="google_ads_weekly">Use template</button>
+    </div>
+    <div class="card">
+      <strong>Bug Triage & Handoff</strong>
+      <p class="muted">Repro, severity, label, assign, ETA, customer update.</p>
+      <button class="btn" data-template="bug_triage">Use template</button>
+    </div>
+    <div class="card">
+      <strong>Sales Discovery Call</strong>
+      <p class="muted">Prep, agenda, qualify, next steps, CRM update.</p>
+      <button class="btn" data-template="sales_discovery">Use template</button>
+    </div>
+  </div>
+</section>
+
+  <!-- Testimonials -->
+<section class="container testimonials" id="testimonials">
+  <div class="muted" style="text-align:center; margin-bottom:10px;">What customers say</div>
+
+  <div class="tmarquee" aria-label="Customer testimonials">
+    <div class="ttrack">
+      <!-- Row A -->
+      <article class="tcard">
+        <div class="tquote">“UltraSOP turned a 20-min ramble into a clean, 7-step SOP. We shipped it to the team in under 5 minutes.”</div>
+        <div class="tmeta">
+          <div class="tavatar">AS</div>
+          <div>
+            <strong>Akshay S.</strong><div class="muted small">Founder, Growth Studio</div>
+          </div>
+          <div class="trating">★★★★★</div>
+        </div>
+      </article>
+
+      <article class="tcard">
+        <div class="tquote">“The versioning is gold. I can restore any snapshot with notes—no more messy docs.”</div>
+        <div class="tmeta">
+          <div class="tavatar">JL</div>
+          <div>
+            <strong>Jaya L.</strong><div class="muted small">Ops Lead</div>
+          </div>
+          <div class="trating">★★★★★</div>
+        </div>
+      </article>
+
+      <article class="tcard">
+        <div class="tquote">“Export to PDF looks polished. Clients actually read it.”</div>
+        <div class="tmeta">
+          <div class="tavatar">RM</div>
+          <div>
+            <strong>Ravi M.</strong><div class="muted small">Agency Owner</div>
+          </div>
+          <div class="trating">★★★★☆</div>
+        </div>
+      </article>
+
+      <article class="tcard">
+        <div class="tquote">“Recorded a quick walkthrough, UltraSOP did the rest. Huge time-saver.”</div>
+        <div class="tmeta">
+          <div class="tavatar">KB</div>
+          <div>
+            <strong>Kiran B.</strong><div class="muted small">Success Manager</div>
+          </div>
+          <div class="trating">★★★★★</div>
+        </div>
+      </article>
+
+      <!-- Row B (duplicate A for seamless loop) -->
+      <article class="tcard">
+        <div class="tquote">“UltraSOP turned a 20-min ramble into a clean, 7-step SOP. We shipped it to the team in under 5 minutes.”</div>
+        <div class="tmeta">
+          <div class="tavatar">AS</div>
+          <div>
+            <strong>Akshay S.</strong><div class="muted small">Founder, Growth Studio</div>
+          </div>
+          <div class="trating">★★★★★</div>
+        </div>
+      </article>
+
+      <article class="tcard">
+        <div class="tquote">“The versioning is gold. I can restore any snapshot with notes—no more messy docs.”</div>
+        <div class="tmeta">
+          <div class="tavatar">JL</div>
+          <div>
+            <strong>Jaya L.</strong><div class="muted small">Ops Lead</div>
+          </div>
+          <div class="trating">★★★★★</div>
+        </div>
+      </article>
+
+      <article class="tcard">
+        <div class="tquote">“Export to PDF looks polished. Clients actually read it.”</div>
+        <div class="tmeta">
+          <div class="tavatar">RM</div>
+          <div>
+            <strong>Ravi M.</strong><div class="muted small">Agency Owner</div>
+          </div>
+          <div class="trating">★★★★☆</div>
+        </div>
+      </article>
+
+      <article class="tcard">
+        <div class="tquote">“Recorded a quick walkthrough, UltraSOP did the rest. Huge time-saver.”</div>
+        <div class="tmeta">
+          <div class="tavatar">KB</div>
+          <div>
+            <strong>Kiran B.</strong><div class="muted small">Success Manager</div>
+          </div>
+          <div class="trating">★★★★★</div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+  
+<section id="faq" class="faq">
+  <div class="wrap">
+    <h2>FAQs</h2>
+    <p class="kicker">Quick answers about UltraSOP</p>
+
+    <div class="accordion" role="region" aria-label="Frequently Asked Questions">
+      <!-- Item 1 -->
+      <div class="acc-item">
+        <button class="acc-btn" aria-expanded="true" aria-controls="faq1" id="faq1-heading">
+          <span>How does UltraSOP generate SOPs?</span>
+          <span class="acc-icon" aria-hidden="true"></span>
+        </button>
+        <div id="faq1" class="acc-panel" role="region" aria-labelledby="faq1-heading">
+          <div class="acc-panel-inner">
+            UltraSOP uses AI to turn your voice notes or pasted instructions into a clean,
+            structured SOP with steps, owners, checks and time estimates.
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 2 -->
+      <div class="acc-item">
+        <button class="acc-btn" aria-expanded="false" aria-controls="faq2" id="faq2-heading">
+          <span>Can I edit the steps after generation?</span>
+          <span class="acc-icon" aria-hidden="true"></span>
+        </button>
+        <div id="faq2" class="acc-panel" role="region" aria-labelledby="faq2-heading">
+          <div class="acc-panel-inner">
+            Yes. Re-order steps, add screenshots, tweak details and save new versions instantly.
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 3 -->
+      <div class="acc-item">
+        <button class="acc-btn" aria-expanded="false" aria-controls="faq3" id="faq3-heading">
+          <span>Do you support PDF & Notion export?</span>
+          <span class="acc-icon" aria-hidden="true"></span>
+        </button>
+        <div id="faq3" class="acc-panel" role="region" aria-labelledby="faq3-heading">
+          <div class="acc-panel-inner">
+            Pro plans include polished PDF export. Notion export is built-in with OAuth.
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 4 -->
+      <div class="acc-item">
+        <button class="acc-btn" aria-expanded="false" aria-controls="faq4" id="faq4-heading">
+          <span>What’s included in the free plan?</span>
+          <span class="acc-icon" aria-hidden="true"></span>
+        </button>
+        <div id="faq4" class="acc-panel" role="region" aria-labelledby="faq4-heading">
+          <div class="acc-panel-inner">
+            Create up to 3 SOPs, edit & reorder, and keep a local version history. Upgrade
+            when you need exports, advanced templates, and team features.
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 5 -->
+<div class="acc-item">
+  <button class="acc-btn" aria-expanded="false" aria-controls="faq5" id="faq5-heading">
+    <span>Is my data private and secure?</span>
+    <span class="acc-icon" aria-hidden="true"></span>
+  </button>
+  <div id="faq5" class="acc-panel" role="region" aria-labelledby="faq5-heading">
+    <div class="acc-panel-inner">
+      Your SOPs live in your workspace. All traffic is over HTTPS and sensitive tokens are
+      encrypted. Public share links are tokenized and can be revoked anytime. You can delete
+      your data from Settings whenever you need.
+    </div>
+  </div>
+</div>
+
+<!-- Item 6 -->
+<div class="acc-item">
+  <button class="acc-btn" aria-expanded="false" aria-controls="faq6" id="faq6-heading">
+    <span>Can I import existing docs or start from templates?</span>
+    <span class="acc-icon" aria-hidden="true"></span>
+  </button>
+  <div id="faq6" class="acc-panel" role="region" aria-labelledby="faq6-heading">
+    <div class="acc-panel-inner">
+      Yes. Paste any text to generate a SOP, upload audio files (.mp3, .m4a, .webm) for
+      transcription, or start from ready-made templates. You can edit steps after import
+      and save new versions instantly.
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+</section>
+
+
+   <!-- Social proof strip -->
+<section class="container" id="social-proof" style="padding:8px 0 20px">
+  <div class="muted" style="font-size:12px; text-transform:uppercase; letter-spacing:.12em">
+    Trusted by teams at
+  </div>
+
+  <!-- animated logo/text marquee -->
+  <div class="marquee" aria-label="Customer logos marquee">
+    <div class="marquee__track">
+      <!-- Row A -->
+      <span class="marquee__item">Acme</span>
+      <span class="marquee__item">NovaCloud</span>
+      <span class="marquee__item">FluxHR</span>
+      <span class="marquee__item">Helio Labs</span>
+      <span class="marquee__item">Orbitly</span>
+      <span class="marquee__item">PixelBank</span>
+      <span class="marquee__item">AtlasOps</span>
+      <span class="marquee__item">Northstar</span>
+      <!-- Row B (duplicate for seamless loop) -->
+      <span class="marquee__item">Acme</span>
+      <span class="marquee__item">NovaCloud</span>
+      <span class="marquee__item">FluxHR</span>
+      <span class="marquee__item">Helio Labs</span>
+      <span class="marquee__item">Orbitly</span>
+      <span class="marquee__item">PixelBank</span>
+      <span class="marquee__item">AtlasOps</span>
+      <span class="marquee__item">Northstar</span>
+    </div>
+  </div>
+</section>
+
+  <section class="pricing2" id="pricing">
+  <div class="wrap">
+    <h2>Simple, fair pricing</h2>
+    <p class="sub">Start free. Upgrade when you need exports, advanced templates, and team features.</p>
+
+    <!-- Toggle -->
+    <div class="toggle" aria-label="Billing period">
+      <span>Monthly</span>
+      <label style="position:relative; display:inline-flex; align-items:center;">
+        <input id="billToggle" type="checkbox" aria-label="Toggle annual billing">
+        <span class="switch"><i></i></span>
+      </label>
+      <span>Annual</span>
+      <span class="save">save 20%</span>
+    </div>
+
+    <!-- Plans -->
+    <div class="grid" id="pricingGrid">
+      <!-- Free -->
+      <article class="pcard" data-month="0" data-year="0">
+        <span class="badge">Free</span>
+        <h3>Starter</h3>
+        <p class="desc">Try UltraSOP with core features.</p>
+        <div class="price">
+          <span class="amt">$0</span><span class="per">/mo</span>
+        </div>
+        <ul>
+          <li><i>✓</i> 3 SOPs</li>
+          <li><i>✓</i> Edit & reorder</li>
+          <li><i>✓</i> Version history (local)</li>
+          <li><i>✓</i> Basic templates</li>
+        </ul>
+        <a href="#app" class="btn primary">Get Started Free</a>
+      </article>
+
+      <!-- Pro -->
+      <article class="pcard" data-month="12" data-year="9.6">
+        <span class="badge">Pro</span>
+        <h3>Professional</h3>
+        <p class="desc">Unlimited SOPs + exports.</p>
+        <div class="price">
+          <span class="amt">$12</span><span class="per">/mo</span>
+        </div>
+        <ul>
+          <li><i>✓</i> Unlimited SOPs</li>
+          <li><i>✓</i> PDF export</li>
+          <li><i>✓</i> Notion export</li>
+          <li><i>✓</i> Priority support</li>
+        </ul>
+        <a href="#app" class="btn primary">Upgrade to Pro</a>
+      </article>
+
+      <!-- Business -->
+      <article class="pcard business" data-month="29" data-year="23.2">
+        <span class="badge">Business</span>
+        <h3>Teams</h3>
+        <p class="desc">Roles, audit log, & SLA.</p>
+        <div class="price">
+          <span class="amt">$29</span><span class="per">/mo</span>
+        </div>
+        <ul>
+          <li><i>✓</i> Everything in Pro</li>
+          <li><i>✓</i> Workspaces & roles</li>
+          <li><i>✓</i> Activity log & SSO (soon)</li>
+          <li><i>✓</i> Email SLAs</li>
+        </ul>
+        <a href="#app" class="btn ghost">Talk to Sales</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+  <footer class="footer container">
+  <div style="display:grid; gap:16px">
+    <div style="display:flex; gap:24px; flex-wrap:wrap">
+      <div>
+        <div style="font-weight:700">Product</div>
+        <div class="muted"><a href="#product">Editor</a></div>
+        <div class="muted"><a href="#resources">How it works</a></div>
+        <div class="muted"><a href="#templates">Templates</a></div>
+      </div>
+      <div>
+        <div style="font-weight:700">Company</div>
+        <div class="muted"><a href="#">About</a></div>
+        <div class="muted"><a href="#">Contact</a></div>
+        <div class="muted"><a href="#">Careers</a></div>
+      </div>
+      <div>
+        <div style="font-weight:700">Resources</div>
+        <div class="muted"><a href="#pricing">Pricing</a></div>
+        <div class="muted"><a href="#">Docs</a></div>
+        <div class="muted"><a href="#">Changelog</a></div>
+      </div>
+      <div>
+        <div style="font-weight:700">Legal</div>
+        <div class="muted"><a href="#">Privacy</a></div>
+        <div class="muted"><a href="#">Terms</a></div>
+      </div>
+    </div>
+    <div>UltraSOP © <span id="year"></span> — Light orange + white theme.</div>
+  </div>
+</footer>
+
+  <!-- GENERATE MODAL -->
+  <div class="modal" id="gen-modal" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="gen-title">
+      <div class="dialog-h">
+        <h3 id="gen-title" style="margin:0">Generate SOP</h3>
+        <button class="btn" id="gen-close" aria-label="Close">✕</button>
+      </div>
+      <div class="dialog-b">
+        <div class="seg">
+          <button class="segbtn active" data-panel="text">Text</button>
+          <button class="segbtn" data-panel="audio">Audio (coming soon)</button>
+        </div>
+
+        <div id="panel-text">
+          <label class="lbl" for="gen-input">Paste rough notes</label>
+          <textarea id="gen-input" class="textarea" rows="10" placeholder="Title: ...&#10;1) ...&#10;2) ...&#10;3) ..."></textarea>
+          <div class="muted" style="font-size:12px;margin-top:6px">Tip: start with a Title line and 5–9 short steps for best results.</div>
+          <div style="margin-top:8px"><button class="btn" id="btn-sample">Try sample</button></div>
+          <label class="lbl" for="gen-title-in" style="margin-top:10px">Optional: Override title</label>
+          <input id="gen-title-in" class="input" placeholder="Leave empty to auto-detect" />
+          <div class="err" id="errbox" style="display:none"></div>
+        </div>
+
+        <div id="panel-audio" style="display:none">
+          <p class="muted">Recording + Whisper transcription will land here soon. For now, use the <strong>Text</strong> tab.</p>
+        </div>
+      </div>
+      <div class="dialog-f">
+        <button class="btn" id="gen-cancel">Cancel</button>
+        <button class="btn btn--cta" id="gen-run"><span class="label">Generate</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADER + TOAST -->
+  <div class="overlay" id="overlay"><div class="box"><span class="spin"></span><span id="overlay-text">Generating…</span></div></div>
+  <div id="toast" class="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+  <script>
+    // Helpers
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const toast = m => { const el=$("#toast"); el.textContent=m; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"), 1600); };
+    const makeId = () => 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const setLoading = (on, txt) => { $("#overlay").classList.toggle("show", on); $("#overlay-text").textContent = txt || "Generating…"; $("#gen-run").disabled = on; };
+
+    // Page basics
+    $("#year").textContent = new Date().getFullYear();
+    $("#nav-get").onclick = () => document.getElementById("app").scrollIntoView({behavior:"smooth"});
+    $("#hero-try").onclick = () => $("#btn-open-modal").click();
+    $("#hero-learn").onclick = () => document.getElementById("resources").scrollIntoView({behavior:"smooth"});
+
+    // App shell tabs
+    $$(".tabbtn").forEach(b=>{
+      b.onclick = ()=>{
+        $$(".tabbtn").forEach(x=>x.classList.remove("active"));
+        b.classList.add("active");
+        $$(".tab").forEach(t=>t.classList.remove("visible"));
+        $("#tab-"+b.dataset.tab).classList.add("visible");
+        if (b.dataset.tab === "versions") renderVersions();
+      };
+    });
+
+    // Modal open/close + segments
+    const modal=$("#gen-modal");
+    const openGen = ()=>{ modal.classList.add("show"); modal.setAttribute("aria-hidden","false"); $("#errbox").style.display="none"; $("#gen-input").focus(); };
+    const closeGen = ()=>{ modal.classList.remove("show"); modal.setAttribute("aria-hidden","true"); };
+    $("#btn-open-modal").onclick=openGen; $("#gen-close").onclick=closeGen; $("#gen-cancel").onclick=closeGen;
+    $$(".segbtn").forEach(b=>b.onclick=()=>{
+      $$(".segbtn").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      const which=b.dataset.panel;
+      $("#panel-text").style.display = which==="text"?"block":"none";
+      $("#panel-audio").style.display = which==="audio"?"block":"none";
+    });
+    $("#btn-sample").onclick=()=>{
+      $("#gen-input").value = "Title: Google Ads weekly routine\n1) Review search terms and add negatives\n2) Rebalance budgets based on CPA\n3) Refresh ad copy tests\n4) Export report and email client\n5) Log changes in Notion";
+    };
+
+    // Simple in-memory SOP state
+    let sops=[]; let active=null;
+
+    // Editor rendering
+    function renderEditor(){
+      if(!active) return;
+      const sop = sops.find(s=>s.id===active); if(!sop) return;
+      $("#sop-title").value = sop.title || "";
+      $("#sop-summary").value = sop.summary || "";
+      const ul=$("#steps-list"); ul.innerHTML="";
+      (sop.steps||[]).forEach((st,i)=>{
+        const title = typeof st==="string" ? st : (st.title||"");
+        const li=document.createElement("li");
+        li.className = "steprow";
+li.innerHTML =
+  '<span class="stepnum">'+(i+1)+'</span>' +
+  '<div style="display:grid;gap:6px">' +
+    '<input class="input step-title" value="'+title.replace(/"/g,'&quot;')+'"/>' +
+    '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+      '<input class="input step-owner" data-idx="'+i+'" placeholder="Owner role (optional)" style="max-width:240px" />' +
+      '<input class="input step-duration" data-idx="'+i+'" type="number" min="0" placeholder="Duration (min)" style="max-width:160px" />' +
+    '</div>' +
+    '<textarea class="textarea step-details" data-idx="'+i+'" placeholder="Details (optional)" style="display:none"></textarea>' +
+  '</div>' +
+  '<div style="display:flex;gap:6px;align-items:center">' +
+    '<button class="btn" data-up="'+i+'">↑</button>' +
+    '<button class="btn" data-down="'+i+'">↓</button>' +
+    '<button class="btn" data-more="'+i+'">More</button>' +
+    '<button class="btn" data-rm="'+i+'">✕</button>' +
+  '</div>';
+
+        
+        ul.appendChild(li);
+        
+        // Prefill details/owner/duration if present
+if (typeof st === "object") {
+  const ta = li.querySelector('.step-details');
+  if (st.details && ta) { ta.style.display = "block"; ta.value = st.details; }
+  const ownerEl = li.querySelector('.step-owner');
+  const durEl   = li.querySelector('.step-duration');
+  if (ownerEl && st.ownerRole) ownerEl.value = st.ownerRole;
+  if (durEl && (st.durationMin || st.durationMin === 0)) durEl.value = st.durationMin;
+}
+
+        // If this step already has details, show & prefill the textarea
+if (typeof st === "object" && st.details) {
+  const ta = li.querySelector('.step-details');
+  if (ta) { ta.style.display = "block"; ta.value = st.details; }
+}
+      });
+      
+      // Title edits
+ul.querySelectorAll(".step-title").forEach((inp, idx)=>{
+  inp.oninput = (e)=>{
+    const txt = e.target.value;
+    if (typeof sop.steps[idx] === "string") { sop.steps[idx] = txt; }
+    else { sop.steps[idx].title = txt; }
+    renderPreview(sop); renderJSON(sop);
+  };
+});
+
+// Owner role
+ul.querySelectorAll(".step-owner").forEach((inp)=>{
+  inp.oninput = (e)=>{
+    const idx = parseInt(inp.getAttribute('data-idx'), 10);
+    if (typeof sop.steps[idx] === "string") { sop.steps[idx] = { title: sop.steps[idx], details:"", ownerRole:"" }; }
+    sop.steps[idx].ownerRole = e.target.value;
+    renderPreview(sop); renderJSON(sop);
+  };
+});
+
+// Duration (minutes)
+ul.querySelectorAll(".step-duration").forEach((inp)=>{
+  inp.oninput = (e)=>{
+    const idx = parseInt(inp.getAttribute('data-idx'), 10);
+    const val = e.target.value === "" ? null : Math.max(0, parseInt(e.target.value,10) || 0);
+    if (typeof sop.steps[idx] === "string") { sop.steps[idx] = { title: sop.steps[idx], details:"", durationMin: 0 }; }
+    sop.steps[idx].durationMin = val;
+    renderPreview(sop); renderJSON(sop);
+  };
+});
+
+      
+      // Toggle "More" (show/hide details textarea)
+ul.querySelectorAll("[data-more]").forEach(btn=>{
+  btn.onclick = ()=>{
+    const idx = parseInt(btn.getAttribute("data-more"), 10);
+    const ta = ul.querySelector('.step-details[data-idx="'+idx+'"]');
+    if (!ta) return;
+    // If details exist and step is a string, convert to object
+    const sop = sops.find(s=>s.id===active);
+    if (!sop) return;
+    if (typeof sop.steps[idx] === "string") {
+      sop.steps[idx] = { title: sop.steps[idx], details: "" };
+    }
+    // Toggle visibility
+    ta.style.display = (ta.style.display === "none" || !ta.style.display) ? "block" : "none";
+  };
+});
+
+// Save details as user types
+ul.querySelectorAll(".step-details").forEach(ta=>{
+  ta.oninput = (e)=>{
+    const idx = parseInt(ta.getAttribute("data-idx"), 10);
+    const sop = sops.find(s=>s.id===active);
+    if (!sop) return;
+    // Ensure object shape
+    if (typeof sop.steps[idx] === "string") {
+      sop.steps[idx] = { title: sop.steps[idx], details: "" };
+    }
+    sop.steps[idx].details = e.target.value;
+    renderPreview(sop); renderJSON(sop);
+  };
+});
+      // Remove
+ul.querySelectorAll("[data-rm]").forEach(btn=>{
+  btn.onclick = ()=>{
+    const idx = parseInt(btn.dataset.rm, 10);
+    sop.steps.splice(idx, 1);
+    renderEditor(); renderPreview(sop); renderJSON(sop);
+  };
+});
+
+// Move up
+ul.querySelectorAll("[data-up]").forEach(btn=>{
+  btn.onclick = ()=>{
+    const idx = parseInt(btn.dataset.up, 10);
+    if (idx <= 0) return;
+    [sop.steps[idx-1], sop.steps[idx]] = [sop.steps[idx], sop.steps[idx-1]];
+    renderEditor(); renderPreview(sop); renderJSON(sop);
+  };
+});
+
+// Move down
+ul.querySelectorAll("[data-down]").forEach(btn=>{
+  btn.onclick = ()=>{
+    const idx = parseInt(btn.dataset.down, 10);
+    if (idx >= sop.steps.length - 1) return;
+    [sop.steps[idx], sop.steps[idx+1]] = [sop.steps[idx+1], sop.steps[idx]];
+    renderEditor(); renderPreview(sop); renderJSON(sop);
+  };
+});
+
+      // Add Step
+const addBtn = document.getElementById('btn-add-step');
+if (addBtn){
+  addBtn.onclick = ()=>{
+    sop.steps = sop.steps || [];
+    sop.steps.push({ title: 'New step' });
+    renderEditor(); renderPreview(sop); renderJSON(sop);
+    const last = document.querySelector('#steps-list .steprow:last-child');
+    if (last) last.scrollIntoView({ behavior:'smooth', block:'center' });
+  };
+}
+
+      $("#sop-title").oninput = e=>{ sop.title=e.target.value; renderPreview(sop); renderJSON(sop); };
+      $("#sop-summary").oninput = e=>{ sop.summary=e.target.value; renderPreview(sop); renderJSON(sop); };
+      renderPreview(sop); renderJSON(sop);
+    }
+    function renderPreview(sop){
+      const steps=(sop.steps||[]).map((st,i)=>{
+  const t = typeof st==="string"? st : (st.title||"");
+  const owner = (typeof st === "object" && st.ownerRole) ? st.ownerRole : "";
+  const dur   = (typeof st === "object" && (st.durationMin || st.durationMin === 0)) ? st.durationMin : "";
+  const details = (typeof st === "object" && st.details) ? st.details : "";
+  const meta = [owner ? `Owner: ${owner}` : '', (dur!=='' ? `Duration: ${dur} min` : '')].filter(Boolean).join(' · ');
+  return '<div style="border:1px dashed #ffd9b7;background:#fff;border-radius:12px;padding:10px;margin-bottom:8px">'
+    + '<strong>Step '+(i+1)+':</strong> '+t
+    + (meta ? '<div class="muted" style="font-size:12px;margin-top:4px">'+meta+'</div>' : '')
+    + (details ? '<div style="margin-top:6px">'+details.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>' : '')
+    + '</div>';
+}).join("");
+      $("#preview").innerHTML = '<h4 style="margin:0 0 6px">'+(sop.title||"Untitled SOP")+'</h4>'
+        + '<p class="muted" style="margin:0 0 10px">'+(sop.summary||"")+'</p>'+steps;
+    }
+    function renderJSON(sop){ $("#jsonbox").textContent = JSON.stringify(sop, null, 2); }
+    function renderVersions(){
+  if(!active) return;
+  const sop  = sops.find(s=>s.id===active);
+  const list = $("#versions-list");
+  if(!list) return;
+  list.innerHTML = "";
+
+  const versions = Array.isArray(sop?.versions) ? sop.versions : [];
+  if(versions.length === 0){
+    list.innerHTML = '<div class="card"><strong>No versions yet.</strong><p class="muted">Click "Save Version" in the top bar to snapshot this SOP.</p></div>';
+    return;
+  }
+
+  versions.slice().reverse().forEach(v=>{
+    const safeNotes = v.notes && String(v.notes).trim()
+      ? String(v.notes).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      : '';
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
+        '<div><strong>v'+v.n+'</strong> · '+ new Date(v.at).toLocaleString() +'</div>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span class="muted" style="font-size:12px">'+(v.title||"")+'</span>' +
+          '<button class="btn" data-restore="'+v.n+'">Restore</button>' +
+        '</div>' +
+      '</div>' +
+      (safeNotes ? '<div class="muted" style="font-size:12px;margin-top:6px">Notes: '+ safeNotes +'</div>' : '');
+    list.appendChild(el);
+  });
+}
+
+    // Download PDF (C4-c)
+document.getElementById('btn-download-pdf').onclick = () => {
+  try {
+    const sop = sops.find(s=>s.id===active);
+    if(!sop){ toast('No SOP open'); return; }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+    const margin = 56;
+    let y = margin;
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+
+    const wrap = (text, width) => doc.splitTextToSize(text || '', width);
+    const line = (txt, opts={}) => {
+      const lines = wrap(txt, pageW - margin*2);
+      lines.forEach(l=>{
+        if (y > pageH - margin) { doc.addPage(); y = margin; }
+        doc.text(l, margin, y, opts);
+        y += 16;
+      });
+    };
+
+    // Header bar
+    doc.setFillColor(255,122,26);
+    doc.rect(0,0,pageW,36,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(14);
+    doc.text('UltraSOP', margin, 24);
+
+    // Title
+    y = 72;
+    doc.setTextColor(17,24,39);
+    doc.setFontSize(20);
+    doc.setFont('helvetica','bold');
+    line(sop.title || 'Untitled SOP');
+
+    // Summary
+    if (sop.summary) {
+      y += 6;
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(12);
+      doc.setTextColor(55,65,81);
+      line(sop.summary);
+      y += 6;
+    }
+
+    // Steps
+    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(17,24,39);
+    line('Steps');
+    doc.setFont('helvetica','normal'); doc.setFontSize(12);
+    (sop.steps || []).forEach((st,i)=>{
+      const title = typeof st === 'string' ? st : (st.title || '');
+      y += 4;
+      doc.setFont('helvetica','bold'); line(`Step ${i+1}: ${title}`);
+      doc.setFont('helvetica','normal');
+
+      const details = typeof st === 'object' && st.details ? st.details : '';
+      if (details) line(details);
+
+      const checklist = typeof st === 'object' && Array.isArray(st.checklist) ? st.checklist : [];
+      if (checklist.length) {
+        line('Checklist:');
+        checklist.forEach(item => line(`• ${item}`));
+      }
+
+      const prereq = typeof st === 'object' && Array.isArray(st.prerequisites) ? st.prerequisites : [];
+      if (prereq.length) {
+        line('Prerequisites:');
+        prereq.forEach(item => line(`• ${item}`));
+      }
+
+      const duration = typeof st === 'object' && (st.durationMin || st.durationMin === 0) ? st.durationMin : null;
+      const owner = typeof st === 'object' && st.ownerRole ? st.ownerRole : null;
+      const risk = typeof st === 'object' && st.riskNotes ? st.riskNotes : null;
+
+      const meta = [owner ? `Owner: ${owner}` : '', duration!=null ? `Duration: ${duration} min` : ''].filter(Boolean).join('   ');
+      if (meta) line(meta);
+      if (risk) line(`Risks: ${risk}`);
+
+      y += 4;
+    });
+
+    // Footer with page numbers
+    const pages = doc.getNumberOfPages();
+    for (let p = 1; p <= pages; p++) {
+      doc.setPage(p);
+      const h = doc.internal.pageSize.getHeight();
+      doc.setFontSize(10); doc.setTextColor(107,114,128);
+      doc.text(`Generated by UltraSOP — ${new Date().toLocaleString()}`, margin, h - 24);
+      doc.text(`${p} / ${pages}`, pageW - margin, h - 24, { align: 'right' });
+    }
+
+    const fileName = (sop.title || 'UltraSOP').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() + '.pdf';
+    doc.save(fileName);
+    toast('PDF downloaded');
+  } catch (e) {
+    console.error(e);
+    toast('PDF export failed');
+  }
+};
+
+    // Generate via Netlify Function
+    async function callGenerateAPI(raw, overrideTitle){
+      const res = await fetch('/.netlify/functions/generateSop', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ inputText: raw, overrideTitle: overrideTitle||"" })
+      });
+      const data = await res.json().catch(()=>({error:"Invalid server response"}));
+      if(!res.ok){ throw new Error(data?.error || ("HTTP "+res.status)); }
+      return data.sop;
+    }
+    $("#gen-run").onclick = async ()=>{
+      const raw = $("#gen-input").value.trim();
+      if(!raw){ $("#errbox").style.display="block"; $("#errbox").textContent="Paste some text first."; return; }
+      $("#errbox").style.display="none";
+      const t0 = performance.now(); setLoading(true,"Generating…");
+      try{
+        const sop = await callGenerateAPI(raw, $("#gen-title-in").value);
+        const t1 = performance.now(); $("#metrics").textContent = "Generated in " + ((t1-t0)/1000).toFixed(1) + "s";
+        sop.id = makeId();
+        sops.unshift(sop); active=sop.id;
+        closeGen(); toast("Generated");
+        renderEditor();
+      }catch(err){
+        $("#errbox").style.display="block"; $("#errbox").textContent = "Error: " + err.message + ". Check your API key or function logs.";
+      }finally{
+        setLoading(false);
+      }
+    };
+
+    // Make “New SOP” just clear the UI
+    $("#btn-new").onclick = ()=>{
+      const empty = { id: makeId(), title:"New SOP", summary:"", steps:["Step 1","Step 2","Step 3"] };
+      sops.unshift(empty); active=empty.id; renderEditor(); toast("Draft created");
+    };
+    
+// Save Version (C3-a + notes)
+document.getElementById('btn-save').onclick = ()=>{
+  if(!active){ toast("Open a SOP first"); return; }
+  const sop = sops.find(s=>s.id===active);
+  if(!sop){ toast("No SOP found"); return; }
+
+  sop.versions = Array.isArray(sop.versions) ? sop.versions : [];
+  const nextN = sop.versions.length ? sop.versions[sop.versions.length-1].n + 1 : 1;
+  const notes = window.prompt('Version notes (optional):', '') || '';
+
+  sop.versions.push({
+    n: nextN,
+    at: new Date().toISOString(),
+    title: sop.title || "Untitled",
+    summary: sop.summary || "",
+    notes: notes.trim(),
+    steps: (sop.steps||[]).map(st => (typeof st==="string" ? st : (st.title||"")))
+  });
+
+  toast("Saved v"+nextN);
+  renderVersions();
+};
+    // Duplicate SOP (C8-a)
+document.getElementById('btn-dup').onclick = ()=>{
+  if(!active){ toast('Open a SOP first'); return; }
+  const src = sops.find(s=>s.id===active);
+  if(!src){ toast('No SOP found'); return; }
+
+  // Deep copy, new id, fresh versions
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = makeId();
+  copy.title = 'Copy of ' + (src.title || 'Untitled SOP');
+  copy.versions = [];
+
+  sops.unshift(copy);
+  active = copy.id;
+
+  renderEditor();      // opens the clone in the editor
+  renderVersions();    // shows empty version list for the clone
+  toast('Duplicated');
+};
+    // Templates library (UI-A5)
+const TEMPLATE_LIBRARY = {
+  onboarding: {
+    title: "New Employee Onboarding",
+    summary: "Welcome, access, IT/security, buddy assignment, and first-week goals.",
+    steps: [
+      "Send welcome email with start date and checklist",
+      "Provision accounts (email, SSO, tools)",
+      "IT & security setup (2FA, password manager)",
+      "Assign buddy and schedule intro call",
+      "Share first-week goals and resources"
+    ]
+  },
+  agency_client_onboarding: {
+    title: "Client Onboarding (Agency)",
+    summary: "Kickoff, asset collection, tracking, approvals, weekly cadence.",
+    steps: [
+      "Schedule kickoff and confirm stakeholders",
+      "Collect brand assets and credentials",
+      "Implement analytics & conversion tracking",
+      "Define deliverables and approval workflow",
+      "Set standing weekly cadence and reporting"
+    ]
+  },
+  minor_outage: {
+    title: "Minor Website Outage",
+    summary: "Triage, communicate, rollback if needed, verify, and log.",
+    steps: [
+      "Acknowledge incident and create ticket",
+      "Triage scope and impact (pages, users, regions)",
+      "Roll back recent changes if correlated",
+      "Verify recovery and monitor metrics",
+      "Post-incident notes and follow-ups"
+    ]
+  },
+  google_ads_weekly: {
+    title: "Google Ads Weekly Routine",
+    summary: "Search terms, negatives, budgets, tests, reporting, and logging.",
+    steps: [
+      "Review search terms and add negatives",
+      "Rebalance budgets by CPA/ROAS",
+      "Refresh ad copy and RSAs tests",
+      "Export performance report and email stakeholder",
+      "Log changes and next actions"
+    ]
+  },
+  bug_triage: {
+    title: "Bug Triage & Handoff",
+    summary: "Repro, severity, labeling, assignment, ETA, and customer update.",
+    steps: [
+      "Reproduce issue with clear steps",
+      "Assign severity & labels",
+      "Attach logs / screenshots",
+      "Assign owner and ETA",
+      "Update customer and link ticket"
+    ]
+  },
+  sales_discovery: {
+    title: "Sales Discovery Call",
+    summary: "Prep agenda, qualify needs, next steps, and CRM update.",
+    steps: [
+      "Prep agenda & research account",
+      "Run discovery and qualify",
+      "Identify stakeholders & timeline",
+      "Agree on next steps",
+      "Update CRM and share recap"
+    ]
+  }
+};
+
+// Click handler for template buttons
+const templatesSection = document.getElementById('templates');
+if (templatesSection){
+  templatesSection.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-template]');
+    if (!btn) return;
+    const key = btn.getAttribute('data-template');
+    const t = TEMPLATE_LIBRARY[key];
+    if (!t) { toast('Template not found'); return; }
+
+    const sop = { id: makeId(), title: t.title, summary: t.summary, steps: t.steps.slice() };
+    sops.unshift(sop);
+    active = sop.id;
+
+    // Switch to Editor and render
+    const editorTabBtn = document.querySelector('[data-tab="editor"]');
+    if (editorTabBtn) editorTabBtn.click();
+    renderEditor();
+    toast('Template added');
+  });
+}
+
+    // Restore Version (C5)
+const versionsListEl = document.getElementById('versions-list');
+if (versionsListEl) {
+  versionsListEl.onclick = (e)=>{
+    const btn = e.target.closest('[data-restore]');
+    if (!btn) return;
+    const verN = parseInt(btn.getAttribute('data-restore'), 10);
+    const sop = sops.find(s=>s.id===active);
+    if (!sop || !Array.isArray(sop.versions)) { toast('No versions'); return; }
+
+    const v = sop.versions.find(x=>x.n === verN);
+    if (!v) { toast('Version not found'); return; }
+
+    // Apply snapshot to current SOP
+    sop.title   = v.title   || 'Untitled';
+    sop.summary = v.summary || '';
+    sop.steps   = (v.steps || []).map(t => (typeof t === 'string' ? t : (t?.title || '')));
+
+    // Re-render editor and switch back to it
+    renderEditor();
+    document.querySelector('[data-tab="editor"]').click();
+    toast('Restored v'+verN);
+  };
+}
+  
+    // Initial demo content
+    const demo = { id: makeId(), title:"New Employee Onboarding", summary:"Welcome, access, buddy, tools, first-week goals.", steps:["Send welcome email","Provision accounts","IT & security checklist","Assign buddy & intro call","First week goals"] };
+    sops = [demo]; active=demo.id; renderEditor();
+  </script>
+  
+<script>
+(function(){
+  const wrap = document.querySelector('#how-steps');
+  if(!wrap) return;
+  const steps = Array.from(wrap.querySelectorAll('.hstep'));
+
+  function setActive(n){
+    steps.forEach((btn, i) => {
+      const on = i === n;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-current', on ? 'step' : 'false');
+    });
+  }
+
+  // init (ensure exactly one active)
+  let current = steps.findIndex(b => b.classList.contains('active'));
+  if (current < 0) current = 0;
+  setActive(current);
+
+  // click to activate (no auto-advance)
+  steps.forEach((btn, i) => btn.addEventListener('click', () => setActive(i)));
+
+  // === precise rail: line starts/ends at dot centers ===
+  function measureRail(){
+    const firstDot = steps[0]?.querySelector('.dot');
+    const lastDot  = steps[steps.length-1]?.querySelector('.dot');
+    if(!firstDot || !lastDot) return;
+
+    const host = wrap;                       // .hsteps element
+    const hostRect = host.getBoundingClientRect();
+    const f = firstDot.getBoundingClientRect();
+    const l = lastDot.getBoundingClientRect();
+
+    const top    = Math.round((f.top + f.height/2) - hostRect.top);
+    const bottom = Math.round(hostRect.bottom - (l.top + l.height/2));
+
+    host.style.setProperty('--lineTop', `${top}px`);
+    host.style.setProperty('--lineBottom', `${bottom}px`);
+  }
+
+  // run on load and resize (fonts/hero images can shift heights)
+  window.addEventListener('load', measureRail);
+  window.addEventListener('resize', measureRail);
+  setTimeout(measureRail, 0);
+})();
+</script>
+<script>
+(function(){
+  const wrap = document.getElementById('how-steps');
+  if(!wrap) return;
+
+  const buttons = wrap.querySelectorAll('.hstep');
+  const shot = document.querySelector('.hshot');
+  const img  = shot ? shot.querySelector('img') : null;
+  const ph   = shot ? shot.querySelector('.ph') : null;
+
+  function showPlaceholder(){
+    if(!img) return;
+    img.style.display = 'none';
+    if(ph) ph.style.display = 'grid';
+  }
+
+  function showSrc(src){
+    if(!img) return;
+    if(!src){ showPlaceholder(); return; }
+
+    img.onload  = ()=>{ img.style.display = 'block'; if(ph) ph.style.display = 'none'; };
+    img.onerror = showPlaceholder;
+
+    // swap src (cache-bust during dev; remove Date.now() if you want caching)
+    img.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+  }
+
+  buttons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      buttons.forEach(b=>{ b.classList.remove('active'); b.removeAttribute('aria-current'); });
+      btn.classList.add('active');
+      btn.setAttribute('aria-current','step');
+
+      showSrc(btn.dataset.gif || '');
+
+      // if your rail re-measure function exists, call it (safe no-op otherwise)
+      if (typeof updateRail === 'function') updateRail();
+    });
+  });
+
+  // Initialise media from the active step on load
+  const active = wrap.querySelector('.hstep.active');
+  if(active) showSrc(active.dataset.gif || '');
+})();
+</script>
+
+<script>
+(function(){
+  const tgl = document.getElementById('billToggle');
+  const grid = document.getElementById('pricingGrid');
+  if(!tgl || !grid) return;
+
+  function setPeriod(isAnnual){
+    grid.querySelectorAll('.pcard').forEach(card=>{
+      const m = parseFloat(card.getAttribute('data-month')||'0');
+      const y = parseFloat(card.getAttribute('data-year')||m);
+      const amtEl = card.querySelector('.amt');
+      const perEl = card.querySelector('.per');
+      const val = isAnnual ? y : m;
+      if(amtEl) amtEl.textContent = '$' + (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1));
+      if(perEl) perEl.textContent = isAnnual ? '/mo (billed yearly)' : '/mo';
+    });
+  }
+
+  setPeriod(false);           // default Monthly
+  tgl.addEventListener('change', ()=> setPeriod(tgl.checked));
+})();
+</script>
+<script>
+(function(){
+  const faq = document.querySelector('.faq');
+  if(!faq) return;
+
+  const btns = faq.querySelectorAll('.acc-btn');
+
+  function closeOthers(current){
+    btns.forEach(btn => {
+      if(btn !== current){
+        btn.setAttribute('aria-expanded','false');
+        btn.parentElement.classList.remove('open');
+        btn.nextElementSibling.style.maxHeight = 0;
+      }
+    });
+  }
+
+  btns.forEach(btn => {
+    const panel = btn.nextElementSibling;
+
+    // if first item is pre-opened, size it
+    if(btn.getAttribute('aria-expanded') === 'true'){
+      btn.parentElement.classList.add('open');
+      panel.style.maxHeight = panel.scrollHeight + 'px';
+    }
+
+    btn.addEventListener('click', () => {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      if(expanded){
+        btn.setAttribute('aria-expanded','false');
+        btn.parentElement.classList.remove('open');
+        panel.style.maxHeight = 0;
+      }else{
+        closeOthers(btn);
+        btn.setAttribute('aria-expanded','true');
+        btn.parentElement.classList.add('open');
+        panel.style.maxHeight = panel.scrollHeight + 'px';
+      }
+    });
+  });
+
+  // keep panel height correct on resize
+  window.addEventListener('resize', () => {
+    faq.querySelectorAll('.acc-btn[aria-expanded="true"]').forEach(btn => {
+      const p = btn.nextElementSibling;
+      p.style.maxHeight = p.scrollHeight + 'px';
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
