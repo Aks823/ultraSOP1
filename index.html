@@ -928,7 +928,6 @@ body::after,
     </div>
       </section>
     <p class="muted" style="margin:8px 2px">Front-end demo — data stays in your browser; generation calls a Netlify Function.</p>
-  </section>
 
   <!-- TEMPLATES -->
   <section class="container section" id="templates">
@@ -1385,7 +1384,6 @@ body::after,
       $("#sop-summary").value = sop.summary || "";
       const ul=$("#steps-list"); ul.innerHTML="";
       (sop.steps||[]).forEach((st,i)=>{
-        const title = typeof st==="string" ? st : (st.title||"");
         const li=document.createElement("li");
 li.className = "steprow";
 
@@ -1452,29 +1450,7 @@ ul.querySelectorAll(".step-title").forEach((inp, idx)=>{
     renderPreview(sop); renderJSON(sop);
   };
 });
-
-// Owner role
-ul.querySelectorAll(".step-owner").forEach((inp)=>{
-  inp.oninput = (e)=>{
-    const idx = parseInt(inp.getAttribute('data-idx'), 10);
-    if (typeof sop.steps[idx] === "string") { sop.steps[idx] = { title: sop.steps[idx], details:"", ownerRole:"" }; }
-    sop.steps[idx].ownerRole = e.target.value;
-    renderPreview(sop); renderJSON(sop);
-  };
-});
-
-// Duration (minutes)
-ul.querySelectorAll(".step-duration").forEach((inp)=>{
-  inp.oninput = (e)=>{
-    const idx = parseInt(inp.getAttribute('data-idx'), 10);
-    const val = e.target.value === "" ? null : Math.max(0, parseInt(e.target.value,10) || 0);
-    if (typeof sop.steps[idx] === "string") { sop.steps[idx] = { title: sop.steps[idx], details:"", durationMin: 0 }; }
-    sop.steps[idx].durationMin = val;
-    renderPreview(sop); renderJSON(sop);
-  };
-});
-
-      
+    
       // Toggle "More" (show/hide details textarea)
 ul.querySelectorAll("[data-more]").forEach(btn=>{
   btn.onclick = ()=>{
