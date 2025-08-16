@@ -29,6 +29,7 @@
     .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 22px}
     .chip{background:var(--orange-100);border:1px solid var(--orange-200);color:#7a3b0a;padding:6px 10px;border-radius:999px;font-size:12px}
     .grid{display:grid;gap:16px}
+ 
     .features{grid-template-columns:repeat(3,1fr);margin:28px 0 8px}
     .card{border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px;background:#fff}
     .muted{color:var(--muted)}
@@ -60,7 +61,8 @@
     .preview{border:1px solid var(--border);border-radius:12px;padding:12px;min-height:260px;background:linear-gradient(180deg,#fff,#fff,#fff7f0)}
     .sopbox{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap}
     /* Modal + overlay + toast */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.32);display:none;align-items:center;justify-content:center;padding:20px}
+    .
+    modal{position:fixed;inset:0;background:rgba(0,0,0,.32);display:none;align-items:center;justify-content:center;padding:20px}
     .modal.show{display:flex}
     .dialog{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);max-width:760px;width:100%}
     .dialog-h{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
@@ -92,6 +94,7 @@ body{
     linear-gradient(to bottom, #FFFFFF 0%, #FFF6F0 28%, #FFE7D1 62%, rgba(255,122,26,.14) 100%);
 }
 
+    
 
 .card{
   border:1px solid var(--border);
@@ -126,6 +129,7 @@ body{
 #social-proof .muted{
   display:block;
   text-align:center;
+
   margin:0 auto 12px;    /* space under the “Trusted by…” label */
 }
 
@@ -927,47 +931,10 @@ body::after,
       </div>
     </div>
       </section>
-    <p class="muted" style="margin:8px 2px">Front-end demo — data stays in your browser; generation calls a Netlify Function.</p>
-
-  <!-- TEMPLATES -->
-  <section class="container section" id="templates">
-  <h3>Popular templates</h3>
-  <div class="grid features" id="templates-grid">
-    <div class="card">
-      <strong>New Employee Onboarding</strong>
-      <p class="muted">Welcome email, access, IT & security, buddy, week-1 plan.</p>
-      <button class="btn" data-template="onboarding">Use template</button>
-    </div>
-    <div class="card">
-      <strong>Client Onboarding (Agency)</strong>
-      <p class="muted">Kickoff, assets, tracking, approvals, weekly cadence.</p>
-      <button class="btn" data-template="agency_client_onboarding">Use template</button>
-    </div>
-    <div class="card">
-      <strong>Minor Website Outage</strong>
-      <p class="muted">Triage, comms, rollback, verify, post-incident notes.</p>
-      <button class="btn" data-template="minor_outage">Use template</button>
-    </div>
-    <div class="card">
-      <strong>Google Ads Weekly Routine</strong>
-      <p class="muted">Search terms, negatives, budgets, tests, report, log.</p>
-      <button class="btn" data-template="google_ads_weekly">Use template</button>
-    </div>
-    <div class="card">
-      <strong>Bug Triage & Handoff</strong>
-      <p class="muted">Repro, severity, label, assign, ETA, customer update.</p>
-      <button class="btn" data-template="bug_triage">Use template</button>
-    </div>
-    <div class="card">
-      <strong>Sales Discovery Call</strong>
-      <p class="muted">Prep, agenda, qualify, next steps, CRM update.</p>
-      <button class="btn" data-template="sales_discovery">Use template</button>
-    </div>
-  </div>
-</section>
+    
 
   <!-- Testimonials -->
-<section class="container testimonials" id="testimonials">
+<section class="containr testimonials" id="testimonials">
   <div class="muted" style="text-align:center; margin-bottom:10px;">What customers say</div>
 
   <div class="tmarquee" aria-label="Customer testimonials">
@@ -1035,6 +1002,7 @@ body::after,
           <div class="tavatar">JL</div>
           <div>
             <strong>Jaya L.</strong><div class="muted small">Ops Lead</div>
+            
           </div>
           <div class="trating">★★★★★</div>
         </div>
