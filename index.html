@@ -1535,6 +1535,75 @@ ul.querySelectorAll("[data-down]").forEach(btn=>{
   };
 });
 
+// Toggle Owner input
+ul.querySelectorAll("[data-owner]").forEach(btn=>{
+  btn.onclick = ()=>{
+    const idx = parseInt(btn.getAttribute("data-owner"),10);
+    const group = ul.querySelector('.ownergroup[data-idx="'+idx+'"]');
+    if(!group) return;
+
+    // ensure object shape
+    if (typeof sop.steps[idx] === "string") {
+      sop.steps[idx] = { title: sop.steps[idx], details:"", ownerRole:"" };
+    }
+
+    const showing = group.classList.toggle("show");
+    btn.classList.toggle("active", showing);
+
+    if (!showing) {
+      sop.steps[idx].ownerRole = "";
+      const input = group.querySelector('.step-owner');
+      if (input) input.value = "";
+    }
+    renderPreview(sop); renderJSON(sop);
+  };
+});
+
+// Save Owner as user types
+ul.querySelectorAll(".step-owner").forEach(inp=>{
+  inp.oninput = (e)=>{
+    const idx = parseInt(inp.closest(".ownergroup").getAttribute("data-idx"),10);
+    if (typeof sop.steps[idx] === "string") { sop.steps[idx] = { title: sop.steps[idx], details:"", ownerRole:"" }; }
+    sop.steps[idx].ownerRole = e.target.value;
+    renderPreview(sop); renderJSON(sop);
+  };
+});
+
+// Toggle Duration input
+ul.querySelectorAll("[data-duration]").forEach(btn=>{
+  btn.onclick = ()=>{
+    const idx = parseInt(btn.getAttribute("data-duration"),10);
+    const group = ul.querySelector('.durgroup[data-idx="'+idx+'"]');
+    if(!group) return;
+
+    if (typeof sop.steps[idx] === "string") {
+      sop.steps[idx] = { title: sop.steps[idx], details:"", durationMin:null };
+    }
+
+    const showing = group.classList.toggle("show");
+    btn.classList.toggle("active", showing);
+
+    if (!showing) {
+      sop.steps[idx].durationMin = null;
+      const input = group.querySelector('.step-duration');
+      if (input) input.value = "";
+    }
+    renderPreview(sop); renderJSON(sop);
+  };
+});
+
+// Save Duration as user types
+ul.querySelectorAll(".step-duration").forEach(inp=>{
+  inp.oninput = (e)=>{
+    const idx = parseInt(inp.closest(".durgroup").getAttribute("data-idx"),10);
+    const val = e.target.value === "" ? null : Math.max(0, parseInt(e.target.value,10) || 0);
+    if (typeof sop.steps[idx] === "string") { sop.steps[idx] = { title: sop.steps[idx], details:"", durationMin:null }; }
+    sop.steps[idx].durationMin = val;
+    renderPreview(sop); renderJSON(sop);
+  };
+});
+
+
       // Add Step
 const addBtn = document.getElementById('btn-add-step');
 if (addBtn){
@@ -1871,6 +1940,43 @@ if (templatesSection){
     toast('Template added');
   });
 }
+
+function renderQuickTemplates(){
+  const list = document.getElementById('qtpl-list');
+  if(!list || typeof TEMPLATE_LIBRARY !== 'object') return;
+
+  // pick a few most useful ones; adjust as you like
+  const picks = ['onboarding','agency_client_onboarding','minor_outage','google_ads_weekly']
+    .filter(k => TEMPLATE_LIBRARY[k]);
+  list.innerHTML = picks.map(k => {
+    const t = TEMPLATE_LIBRARY[k];
+    return `<button class="qtpl-btn" data-template="${k}">${t.title}</button>`;
+  }).join('');
+}
+
+// Handle clicks
+const asideEl = document.querySelector('.aside');
+if (asideEl){
+  asideEl.addEventListener('click', (e)=>{
+    const b = e.target.closest('.qtpl-btn');
+    if(!b) return;
+    const key = b.getAttribute('data-template');
+    const t = TEMPLATE_LIBRARY[key];
+    if(!t) return;
+
+    const sop = { id: makeId(), title: t.title, summary: t.summary, steps: t.steps.slice() };
+    sops.unshift(sop); active = sop.id;
+
+    // jump to Editor and show it
+    const editorTabBtn = document.querySelector('[data-tab="editor"]');
+    if (editorTabBtn) editorTabBtn.click();
+    renderEditor(); toast('Template added');
+  });
+}
+
+// run once the page is ready (or right after TEMPLATE_LIBRARY is declared)
+renderQuickTemplates();
+
 
     // Restore Version (C5)
 const versionsListEl = document.getElementById('versions-list');
