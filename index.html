@@ -1372,14 +1372,6 @@ body::after,
   <div id="toast" class="toast"></div>
 <script src="/assets/app.js"></script>
 
-  <script>
-    // Helpers
-    const $ = s => document.querySelector(s);
-    const $$ = s => Array.from(document.querySelectorAll(s));
-    const toast = m => { const el=$("#toast"); el.textContent=m; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"), 1600); };
-    const makeId = () => 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-    const setLoading = (on, txt) => { $("#overlay").classList.toggle("show", on); $("#overlay-text").textContent = txt || "Generating…"; $("#gen-run").disabled = on; };
-
 // Page basics (guarded so a missing node doesn't crash the app)
 const yearEl = $("#year");
 if (yearEl) yearEl.textContent = new Date().getFullYear();
