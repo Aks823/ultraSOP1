@@ -399,22 +399,54 @@ document.getElementById('btn-download-pdf')?.addEventListener('click', () => {
     return data.sop;
   }
 
-  $("#gen-run")?.addEventListener('click', async ()=>{
-    const raw = $("#gen-input")?.value.trim();
-    if(!raw){ const e=$("#errbox"); if(e){ e.style.display="block"; e.textContent="Paste some text first."; } return; }
-    const err=$("#errbox"); if(err) err.style.display="none";
-    const t0 = performance.now(); setLoading(true,"Generating…");
+$("#gen-run")?.addEventListener('click', async ()=>{
+  const raw = $("#gen-input")?.value.trim();
+  if(!raw){
+    const e=$("#errbox"); if(e){ e.style.display="block"; e.textContent="Paste some text first."; }
+    return;
+  }
+  const err=$("#errbox"); if(err) err.style.display="none";
+  const t0 = performance.now(); setLoading(true,"Generating…");
+
+  // Tiny local fallback in case the function errors
+  const localFromNotes = (notes, overrideTitle) => {
+    const lines = String(notes).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    const bulletRx = /^(\d+[\.\)]\s+|[-*]\s+)/;
+    let title = (overrideTitle || '').trim();
+    if (!title) {
+      const tLine = lines.find(l => /^title\s*:/i.test(l));
+      title = tLine ? tLine.replace(/^title\s*:/i,'').trim() : (lines[0] || 'Untitled SOP');
+    }
+    const steps = lines.filter(l => bulletRx.test(l)).map(l => l.replace(bulletRx,'').trim());
+    const summary = lines.filter(l => !bulletRx.test(l) && !/^title\s*:/i.test(l)).slice(0,3).join(' — ').slice(0,240);
+    return {
+      title,
+      summary,
+      steps: (steps.length ? steps : ['Plan the work','Perform the work','Review & finalize']).map(s => ({ title: s }))
+    };
+  };
+
+  try{
+    const sop = await callGenerateAPI(raw, $("#gen-title-in")?.value);
+    const t1 = performance.now(); const m=$("#metrics"); if(m) m.textContent = "Generated in " + ((t1-t0)/1000).toFixed(1) + "s";
+    sop.id = makeId();
+    sops.unshift(sop); active=sop.id;
+    closeGen(); toast("Generated");
+    renderEditor();
+  }catch(e){
+    const box=$("#errbox"); if(box){ box.style.display="block"; box.textContent = "Error: " + (e.message || 'Unknown') + ". Using local fallback."; }
+    // Local fallback so user isn’t blocked
     try{
-      const sop = await callGenerateAPI(raw, $("#gen-title-in")?.value);
-      const t1 = performance.now(); const m=$("#metrics"); if(m) m.textContent = "Generated in " + ((t1-t0)/1000).toFixed(1) + "s";
+      const sop = localFromNotes(raw, $("#gen-title-in")?.value);
       sop.id = makeId();
       sops.unshift(sop); active=sop.id;
-      closeGen(); toast("Generated");
+      closeGen(); toast("Generated (fallback)");
       renderEditor();
-    }catch(e){
-      const box=$("#errbox"); if(box){ box.style.display="block"; box.textContent = "Error: " + e.message + ". Check your API key or function logs."; }
-    }finally{ setLoading(false); }
-  });
+    }catch{}
+  }finally{
+    setLoading(false);
+  }
+});
 
   // ===== Versions =====
   document.getElementById('btn-save')?.addEventListener('click', ()=>{
