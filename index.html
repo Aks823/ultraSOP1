@@ -1018,6 +1018,7 @@ body::after,
             <button class="btn btn--cta" id="btn-open-modal">Generate SOP</button>
             <button class="btn" id="btn-save">Save Version</button>
             <button class="btn" id="btn-dup">Duplicate</button>
+            <button class="btn" id="btn-rewrite-all">✨ Enhance steps</button>
             <!-- Removed: New SOP -->
           </div>
 
@@ -1917,6 +1918,40 @@ document.getElementById('btn-dup').onclick = ()=>{
   renderVersions();    // shows empty version list for the clone
   toast('Duplicated');
 };
+    // Rewrite all steps via Netlify function
+document.getElementById('btn-rewrite-all').onclick = async () => {
+  if (!active) { toast('Open a SOP first'); return; }
+  const sop = sops.find(s => s.id === active);
+  if (!sop) { toast('No SOP found'); return; }
+
+  try {
+    setLoading(true, 'Rewriting…');
+    const res = await fetch('/.netlify/functions/rewriteAll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        steps: sop.steps,
+        sopTitle: sop.title || '',
+        sopSummary: sop.summary || ''
+      })
+    });
+    const data = await res.json().catch(() => ({ error: 'Invalid server response' }));
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+
+    const newSteps = Array.isArray(data.steps) ? data.steps : null;
+    if (!newSteps) throw new Error('No steps returned');
+
+    sop.steps = newSteps;
+    renderEditor(); renderPreview(sop); renderJSON(sop);
+    toast('Steps enhanced');
+  } catch (err) {
+    console.error(err);
+    toast('Rewrite failed: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
     // Templates library (UI-A5)
 const TEMPLATE_LIBRARY = {
   onboarding: {
