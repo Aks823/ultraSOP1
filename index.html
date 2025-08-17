@@ -1918,6 +1918,62 @@ document.getElementById('btn-dup').onclick = ()=>{
   renderVersions();    // shows empty version list for the clone
   toast('Duplicated');
 };
+
+    // Enhance all steps (sequential to avoid 502s)
+const btnRewriteAll = document.getElementById('btn-rewrite-all');
+if (btnRewriteAll) {
+  btnRewriteAll.addEventListener('click', async () => {
+    if (!active) { toast('Open a SOP first'); return; }
+    const sop = sops.find(s => s.id === active);
+    if (!sop || !Array.isArray(sop.steps) || sop.steps.length === 0) {
+      toast('No steps to enhance'); return;
+    }
+
+    setLoading(true, 'Enhancing steps…');
+
+    try {
+      for (let i = 0; i < sop.steps.length; i++) {
+        const st = sop.steps[i];
+        const title = (typeof st === 'string' ? st : (st?.title || '')).trim();
+
+        // skip empty rows
+        if (!title) continue;
+
+        // call the same Netlify function used by the single "Rewrite"
+        const res = await fetch('/.netlify/functions/rewriteStep', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            step: title,
+            sopTitle: sop.title || '',
+            sopSummary: sop.summary || ''
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        // on success, replace this step with the enriched object
+        if (res.ok && data?.step) {
+          sop.steps[i] = data.step;
+        } else {
+          console.warn('Enhance failed for step', i + 1, data);
+          // continue gracefully on errors for a single step
+        }
+
+        // tiny delay between requests helps avoid 429/502 spikes
+        await new Promise(r => setTimeout(r, 250));
+      }
+
+      renderEditor();             // re-render with enriched steps
+      toast('Steps enhanced');
+    } catch (err) {
+      console.error(err);
+      toast('Enhance failed');
+    } finally {
+      setLoading(false);
+    }
+  });
+}
     // Rewrite all steps via Netlify function
 document.getElementById('btn-rewrite-all').onclick = async () => {
   if (!active) { toast('Open a SOP first'); return; }
@@ -2109,6 +2165,7 @@ if (versionsListEl) {
     // Initial demo content
     const demo = { id: makeId(), title:"New Employee Onboarding", summary:"Welcome, access, buddy, tools, first-week goals.", steps:["Send welcome email","Provision accounts","IT & security checklist","Assign buddy & intro call","First week goals"] };
     sops = [demo]; active=demo.id; renderEditor();
+    
   </script>
   
 <script>
