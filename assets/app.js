@@ -350,19 +350,21 @@
       // Steps
       doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(17,24,39); line('Steps');
       doc.setFont('helvetica','normal'); doc.setFontSize(12);
-      (sop.steps || []).forEach((st,i)=>{
-        const title = typeof st === 'string' ? st : (st.title || '');
+      const steps = Array.isArray(sop.steps) ? sop.steps : [];
+      steps.forEach((st,i)=>{
+        const sObj = (st && typeof st === 'object') ? st : { title: st };
+        const title = String(sObj.title || '');
         y += 4; doc.setFont('helvetica','bold'); line(`Step ${i+1}: ${title}`); doc.setFont('helvetica','normal');
-        const details = typeof st === 'object' && st.details ? st.details : '';
+        const details = typeof sObj.details === 'string' ? sObj.details : '';
         if (details) line(details);
-        const checklist = typeof st === 'object' && Array.isArray(st.checklist) ? st.checklist : [];
+        const checklist = Array.isArray(sObj.checklist) ? sObj.checklist.map(c=>String(c)) : [];
         if (checklist.length) { line('Checklist:'); checklist.forEach(item => line(`• ${item}`)); }
-        const prereq = typeof st === 'object' && Array.isArray(st.prerequisites) ? st.prerequisites : [];
+        const prereq = Array.isArray(sObj.prerequisites) ? sObj.prerequisites.map(p=>String(p)) : [];
         if (prereq.length) { line('Prerequisites:'); prereq.forEach(item => line(`• ${item}`)); }
-        const duration = typeof st === 'object' && (st.durationMin || st.durationMin === 0) ? st.durationMin : null;
-        const owner = typeof st === 'object' && st.ownerRole ? st.ownerRole : null;
-        const risk = typeof st === 'object' && st.riskNotes ? st.riskNotes : null;
-        const meta = [owner ? `Owner: ${owner}` : '', duration!=null ? `Duration: ${duration} min` : ''].filter(Boolean).join('   ');
+        const duration = typeof sObj.durationMin === 'number' ? sObj.durationMin : null;
+        const owner = typeof sObj.ownerRole === 'string' && sObj.ownerRole.trim() ? sObj.ownerRole : null;
+        const risk = typeof sObj.riskNotes === 'string' && sObj.riskNotes.trim() ? sObj.riskNotes : null;
+        const meta = [owner ? `Owner: ${owner}` : '', duration!=null ? `Duration: ${duration} min` : ''].filter(Boolean).join('  ');
         if (meta) line(meta);
         if (risk) line(`Risks: ${risk}`);
         y += 4;
