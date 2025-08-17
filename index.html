@@ -225,7 +225,12 @@ body{
   font-weight:700; color:#FF7A1A;
 }
 
-.trating{ color:#F59E0B; font-size:14px; }
+.trating{
+  color:#F59E0B;
+  font-size:14px;
+  transform: translateY(-3px);   /* raise stars ~3px; tweak -2px..-4px to taste */
+  white-space:nowrap;            /* you already added this; keep it */
+}
 
 /* ===== S4b — How it works (precise rail + bigger text) ===== */
 
@@ -1051,7 +1056,7 @@ body::after,
     
 
   <!-- Testimonials -->
-<section class="container testimonials" id="testimonials">
+<section class="app testimonials" id="testimonials">
   <div class="muted" style="text-align:center; margin-bottom:10px;">What customers say</div>
 
   <div class="tmarquee" aria-label="Customer testimonials">
