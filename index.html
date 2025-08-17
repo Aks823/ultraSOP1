@@ -1037,6 +1037,7 @@ body::after,
             </div>
             <div>
               <div class="lbl">Preview</div>
+              <div id="enhance-status" style="display:none;align-items:center;gap:8px;font-size:12px;color:#6B7280;margin:4px 0 8px;display:flex"><span class="spin"></span><span>Enhancing…</span></div>
               <div id="preview" class="preview"></div>
               <button class="btn" id="btn-download-pdf" style="margin-top:8px">Download PDF</button>
               <div style="margin-top:12px">
@@ -1980,8 +1981,12 @@ document.getElementById('btn-rewrite-all').onclick = async () => {
   const sop = sops.find(s => s.id === active);
   if (!sop) { toast('No SOP found'); return; }
 
+  // show loading (overlay + small “AI working” tip if you added it)
+  const tip = document.getElementById('ai-tip');
+  tip?.classList.add('show');
+  setLoading(true, 'Enhancing steps…');
+
   try {
-    setLoading(true, 'Rewriting…');
     const res = await fetch('/.netlify/functions/rewriteAll', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1991,10 +1996,12 @@ document.getElementById('btn-rewrite-all').onclick = async () => {
         sopSummary: sop.summary || ''
       })
     });
-    const data = await res.json().catch(() => ({ error: 'Invalid server response' }));
-    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
 
-    const newSteps = Array.isArray(data.steps) ? data.steps : null;
+    let data;
+    try { data = await res.json(); } catch { data = null; }
+    if (!res.ok) throw new Error((data && data.error) ? data.error : `HTTP ${res.status}`);
+
+    const newSteps = Array.isArray(data?.steps) ? data.steps : null;
     if (!newSteps) throw new Error('No steps returned');
 
     sop.steps = newSteps;
@@ -2002,11 +2009,13 @@ document.getElementById('btn-rewrite-all').onclick = async () => {
     toast('Steps enhanced');
   } catch (err) {
     console.error(err);
-    toast('Rewrite failed: ' + err.message);
+    toast(`Enhance failed: ${err.message}`);
   } finally {
+    tip?.classList.remove('show');
     setLoading(false);
   }
 };
+
 
     // Templates library (UI-A5)
 const TEMPLATE_LIBRARY = {
