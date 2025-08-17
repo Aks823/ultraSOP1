@@ -4,9 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>UltraSOP — SOPs from voice & notes</title>
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- jsPDF for the Download PDF button -->
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
   <style>
     :root{
       --orange:#FF7A1A; --orange-100:#FFF3E9; --orange-200:#FFE5D1;
@@ -29,7 +35,6 @@
     .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 22px}
     .chip{background:var(--orange-100);border:1px solid var(--orange-200);color:#7a3b0a;padding:6px 10px;border-radius:999px;font-size:12px}
     .grid{display:grid;gap:16px}
- 
     .features{grid-template-columns:repeat(3,1fr);margin:28px 0 8px}
     .card{border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px;background:#fff}
     .muted{color:var(--muted)}
@@ -39,8 +44,7 @@
     .footer{padding:28px 0;color:#6B7280;border-top:1px solid var(--border)}
     .appwrap{margin:32px 0}
     .appshell{display:grid;grid-template-columns:280px 1fr;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;background:#fff}
-    /* let the shell span the container’s width */
-#generator .appshell { width:100%; }
+    #generator .appshell { width:100%; }
     .aside{border-right:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:8px}
     .tabbtn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer}
     .tabbtn.active{border-color:var(--orange);box-shadow:0 0 0 2px rgba(255,122,26,.24)}
@@ -50,7 +54,6 @@
     .toolbar{display:flex;gap:10px}
     .tab{display:none;padding:16px}
     .tab.visible{display:block}
-    /* Editor */
     .editor{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .lbl{display:block;font-size:12px;color:var(--muted);margin:8px 0 6px}
     .input,.textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px}
@@ -60,20 +63,8 @@
     .stepnum{width:28px;height:28px;display:grid;place-items:center;border-radius:999px;background:var(--orange-100);font-weight:600;color:#7a3b0a}
     .preview{border:1px solid var(--border);border-radius:12px;padding:12px;min-height:260px;background:linear-gradient(180deg,#fff,#fff,#fff7f0)}
     .sopbox{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap}
-
-    /* Modal + overlay + toast */
-.modal{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.32);
-  display: none;                 /* hidden by default */
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  z-index: 50;                   /* above nav & overlay */
-}
-.modal.show{ display: flex; }
-
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.32);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+    .modal.show{display:flex}
     .dialog{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);max-width:760px;width:100%}
     .dialog-h{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
     .dialog-b{padding:14px 16px}
@@ -90,736 +81,173 @@
     .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 8px 30px rgba(17,24,39,.2);opacity:0;pointer-events:none;transition:opacity .15s ease}
     .toast.show{opacity:1}
     .metrics{font-size:12px;color:var(--muted)}
-    /* Responsive */
     @media (max-width:980px){
       .features,.how,.pricing{grid-template-columns:1fr}
       .appshell{grid-template-columns:1fr}
       .aside{border-right:none;border-bottom:1px solid var(--border)}
       .editor{grid-template-columns:1fr}
     }
-
-    /* --- S1: Background & card polish (UltraSOP) --- */
-body{
-  background:
-    linear-gradient(to bottom, #FFFFFF 0%, #FFF6F0 28%, #FFE7D1 62%, rgba(255,122,26,.14) 100%);
-}
-
-    
-
-.card{
-  border:1px solid var(--border);
-  border-radius:12px;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
-}
-
-/* animated marquee (logos / words) */
-.marquee{
-  overflow:hidden; position:relative; width:100%;
-  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-}
-.marquee__track{
-  display:flex;
-  gap:56px;               /* more breathing room between names */
-  align-items:center;
-  white-space:nowrap;
-  will-change: transform;
-  padding:8px 0;          /* spacing so it doesn’t “collide” with the label */
-  animation: marquee-scroll 26s linear infinite;
-}
-.marquee__track:hover{ animation-play-state: paused; }
-@keyframes marquee-scroll{
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); } /* duplicate row for seamless loop */
-}
-.marquee__item{
-  font-weight:700; color:#6B7280; opacity:.9; /* muted gray “logo text” */
-}
+    /* (all your additional CSS from the original message continues below unchanged) */
+    body{background:linear-gradient(to bottom,#FFFFFF 0%,#FFF6F0 28%,#FFE7D1 62%,rgba(255,122,26,.14) 100%);}
+    .card{border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 26px rgba(15, 23, 42, 0.06);}
+    .marquee{overflow:hidden; position:relative; width:100%; mask-image:linear-gradient(to right, transparent, black 10%, black 90%, transparent);}
+    .marquee__track{display:flex; gap:56px; align-items:center; white-space:nowrap; will-change:transform; padding:8px 0; animation: marquee-scroll 26s linear infinite;}
+    .marquee__track:hover{ animation-play-state: paused; }
+    @keyframes marquee-scroll{from{transform:translateX(0);} to{transform:translateX(-50%);} }
+    .marquee__item{font-weight:700; color:#6B7280; opacity:.9;}
     #social-proof{ text-align:center; }
-
-#social-proof .muted{
-  display:block;
-  text-align:center;
-
-  margin:0 auto 12px;    /* space under the “Trusted by…” label */
-}
-
-#social-proof .marquee{
-  margin:8px auto 28px;  /* extra space below the marquee */
-  max-width:1200px;      /* keeps the row tidy on big screens */
-}
-
-/* responsive */
-    /* H1: hero chips + accent + benefit spacing */
-.hero .chip{
-  background:#fff;
-  color:#0F172A;
-  border:1px solid rgba(255,122,26,.45);           /* dark-orange stroke */
-  box-shadow:0 0 0 3px rgba(255,122,26,.12),
-             0 8px 18px rgba(255,122,26,.18);      /* warm glow */
-  border-radius:999px;
-  padding:6px 12px;
-  font-weight:600;
-}
-.accent{ color:#FF7A1A; }                          /* matches your CTA orange */
-/* Force hero highlight cards to center */
-
-
-    /* S3: Testimonials marquee */
-.testimonials{ padding:24px 0 12px; }
-.tmarquee{
-  overflow:hidden; position:relative; width:100%;
-}
-    /* Edge fades via overlays (safer than mask) */
-.tmarquee::before,
-.tmarquee::after{
-  content:"";
-  position:absolute;
-  top:0; bottom:0;
-  width:64px;
-  pointer-events:none;
-}
-.tmarquee::before{
-  left:0;
-  background:linear-gradient(to right, #FFFFFF, rgba(255,255,255,0));
-}
-.tmarquee::after{
-  right:0;
-  background:linear-gradient(to left, #FFFFFF, rgba(255,255,255,0));
-}
-
-.ttrack{
-  display:flex; gap:16px; align-items:stretch; white-space:nowrap;
-  will-change: transform;
-  padding:8px 0;
-  animation: testimonial-scroll 38s linear infinite;
-}
-.ttrack:hover{ animation-play-state: paused; }
-
-@keyframes testimonial-scroll{
-  from{ transform: translateX(0); }
-  to  { transform: translateX(-50%); } /* duplicate row for seamless loop */
-}
-
-.tcard{
-  display:flex; flex-direction:column; justify-content:space-between;
-  flex: 0 0 320px;        /* <- fixed width track for each card */
-  width:320px;            /* keep width explicit */
-  background:#fff; border:1px solid var(--border); border-radius:14px;
-  box-shadow:0 10px 26px rgba(15,23,42,.06);
-  padding:14px;
-}
-
-.tquote{
-  color:#1F2937;
-  line-height:1.45;
-  white-space: normal;      /* wrap lines */
-  overflow-wrap: anywhere;  /* break long words if needed */
-  word-break: break-word;   /* extra safety */
-}
-
-.tmeta{ display:flex; align-items:center; gap:10px; margin-top:12px; }
-.tavatar{
-  width:36px; height:36px; border-radius:50%;
-  background:#FFE6D4;
-  display:grid; place-items:center;
-  font-weight:700; color:#FF7A1A;
-}
-
-.trating{
-  color:#F59E0B;
-  font-size:14px;
-  transform: translateY(-3px);   /* raise stars ~3px; tweak -2px..-4px to taste */
-  white-space:nowrap;            /* you already added this; keep it */
-}
-
-/* ===== S4b — How it works (precise rail + bigger text) ===== */
-
-:root{
-  --how-o: #FF7A1A;       /* brand orange */
-  --how-line1:#FFD8BD;
-  --how-line2:#FFB07A;
-}
-
-/* section spacing */
-.how2{ padding:64px 0 40px; }
-.how2 h2{ margin:0 0 8px; }
-.how2 .hint{ color:#A7ADB7; margin:-2px 0 18px; }
-
-/* robust two-column grid (renamed to avoid collisions) */
-.howWrap{
-  display:grid; gap:48px; align-items:start;
-  grid-template-columns: minmax(380px, 640px) 1fr;
-}
-@media(max-width:980px){
-  .howWrap{ grid-template-columns:1fr; gap:24px; }
-}
-
-/* LEFT: timeline column */
-.hsteps{
-  position:relative;
-  /* these are set by JS precisely so the line starts/ends under the dots */
-  --lineTop: 18px;
-  --lineBottom: 18px;
-  padding: 0;                                 /* no extra padding */
-  user-select:none;
-  -webkit-tap-highlight-color:transparent;
-}
-/* the line itself */
-.hsteps::before{
-  content:"";
-  position:absolute;
-  left: 20px;                 /* center of the rail (grid col 1 is 40px wide) */
-  top: var(--lineTop);
-  bottom: var(--lineBottom);
-  width:2px;
-  background:linear-gradient(var(--how-line1), var(--how-line2));
-  opacity:.95;
-  pointer-events:none;
-}
-
-.hstep{
-  display:grid;
-  grid-template-columns: 40px 1fr;            /* 40px rail (dot), then text */
-  gap:18px;
-  padding:20px 0;                              /* taller rows = more section height */
-  background:none; border:0; text-align:left; cursor:pointer;
-  transition: opacity .25s ease, transform .12s ease;
-}
-.hstep:not(.active){ opacity:.55; }
-.hstep:hover{ opacity:.82; }
-
-/* Align the dot with the “Step …” title baseline */
-.hstep .dot{
-  /* was: place-self:center; */
-  justify-self: center;     /* keep it centered in the rail column */
-  align-self: start;        /* anchor to top of the grid row */
-
-  width:20px; height:20px; border-radius:50%;
-  background: var(--how-o);
-  box-shadow: 0 0 6px rgba(255,122,26,.22);
-  position:relative;
-
-  /* fine-tune vertical position; negative = move dot up */
-  margin-top: 3px;         /* try -6px to -10px to taste */
-}
-
-
-.hstep .dot::after{                  /* pulsing ring only when active */
-  content:""; position:absolute; inset:-6px; border-radius:50%;
-  border:2px solid rgba(255,122,26,.38);
-  transform: scale(.78); opacity:0;
-}
-.hstep.active .dot::after{ animation:howRing 1.6s cubic-bezier(.2,.8,.2,1) infinite; opacity:1; }
-@keyframes howRing{ 0%{transform:scale(.78);opacity:.95} 80%{transform:scale(1.35);opacity:0} 100%{opacity:0} }
-
-/* bigger type to match the right-side card height */
-.hstep .title{
-  margin:0 0 8px;
-  font-size:22px;
-  line-height:1.25;
-  color:#0F172A;
-  font-weight:700;
-}
-.hstep p{
-  margin:0;
-  color:#556;
-  font-size:16px;
-  line-height:1.6;
-  max-width:560px;
-}
-
-/* RIGHT: media card + glow */
-.hmedia{ position:relative; }
-.hglow{
-  position:absolute; inset:-60px -40px -40px -40px;
-  background:radial-gradient(520px 360px at 60% 30%, rgba(255,122,26,.16), rgba(255,122,26,0) 60%);
-  filter:blur(6px); pointer-events:none;
-}
-.hshot{
-  position:relative; background:#fff; border:1px solid var(--border);
-  border-radius:18px; box-shadow:0 22px 50px rgba(15,23,42,.12);
-  overflow:hidden;
-}
-.hshot img{ display:block; width:100%; height:auto; }
-.hshot .ph{
-  display:grid; place-items:center; height:460px; color:#8A8F98; text-align:center;
-}
-.hshot .ph small{ display:block; color:#A7ADB7; }
-
-    /* ==== Force a pure-white page (no gradients) ==== */
-:root{
-  /* match any masking rings we added around dots */
-  --how-bg-mask: #ffffff;
-}
-
-/* Global page background */
-html, body{
-  background: #fff !important;
-  background-image: none !important;
-}
-
-/* Common sections we tinted earlier – make them flat white */
-.hero,
-.how2,
-.features,
-.pricing,
-.resources,
-.container,
-.section,
-.page,
-.appshell{
-  background: #fff !important;
-  background-image: none !important;
-}
-
-/* Kill any gradient overlays/pseudo-elements if they exist */
-body::before,
-body::after,
-.hero::before,
-.hero::after,
-.how2::before,
-.how2::after{
-  content: none !important;
-  background: none !important;
-}
-
-/* Optional: if the How section glow is visible, hide it */
-.hglow{ display: none !important; }
-
-    /* ==== Pricing (UltraSOP theme) ====================================== */
-:root{
-  --u-orange:#FF7A1A;
-  --u-txt:#1F2937;
-  --u-sub:#6B7280;
-  --u-bor:#E5E7EB;
-  --u-bg:#FFFFFF;
-}
-
-.pricing2{ padding:72px 0; background:#fff; }
-.pricing2 .wrap{ max-width:1100px; margin:0 auto; padding:0 20px; }
-.pricing2 h2{ font-size:34px; line-height:1.15; color:var(--u-txt); margin:0 0 12px; }
-.pricing2 p.sub{ color:var(--u-sub); margin:0 0 28px; }
-
-/* Toggle */
-.pricing2 .toggle{
-  display:flex; align-items:center; gap:12px; margin:8px 0 28px;
-  color:var(--u-sub); user-select:none;
-}
-.pricing2 .switch{
-  position:relative; width:54px; height:30px; background:#F3F4F6; border-radius:999px;
-  box-shadow: inset 0 0 0 1px var(--u-bor);
-}
-.pricing2 .switch i{
-  position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%;
-  background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.12);
-  transition: transform .22s ease-out;
-}
-.pricing2 input[type=checkbox]{ position:absolute; opacity:0; inset:0; cursor:pointer; }
-.pricing2 input[type=checkbox]:checked + .switch i{ transform: translateX(24px); }
-.pricing2 .save{ font-size:12px; color:#10B981; background:#ECFDF5; border:1px solid #D1FAE5; padding:2px 8px; border-radius:999px; }
-
-/* Grid */
-.pricing2 .grid{
-  display:grid; grid-template-columns: repeat(3,1fr); gap:20px;
-}
-@media (max-width: 900px){ .pricing2 .grid{ grid-template-columns: 1fr; } }
-
-/* Card */
-.pcard{
-  background:var(--u-bg);
-  border:1px solid var(--u-bor);
-  border-radius:14px;
-  padding:22px 22px 20px;
-  box-shadow: 0 8px 30px rgba(17,24,39,.06);
-  transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
-}
-.pcard:hover{ transform: translateY(-2px); border-color:#FDE5D4; box-shadow: 0 14px 36px rgba(17,24,39,.08); }
-.pcard .badge{
-  display:inline-block; font-size:12px; color:#A15D27; background:#FFF2E9; border:1px solid #FFE3D0;
-  padding:3px 8px; border-radius:999px; margin-bottom:10px;
-}
-.pcard h3{ margin:8px 0 2px; font-size:20px; color:var(--u-txt); }
-.pcard .desc{ color:var(--u-sub); font-size:14px; margin:0 0 14px; }
-
-.pcard .price{ display:flex; align-items:baseline; gap:6px; margin:6px 0 12px; }
-.pcard .price .amt{ font-size:38px; font-weight:700; color:var(--u-txt); }
-.pcard .price .per{ color:var(--u-sub); }
-
-.pcard ul{ list-style:none; padding:0; margin:12px 0 16px; display:grid; gap:8px; }
-.pcard li{ display:flex; gap:10px; color:var(--u-txt); }
-.pcard li i{
-  width:18px; height:18px; border-radius:50%; background:#FFECE0; display:inline-grid; place-items:center;
-  color:var(--u-orange); font-size:12px; transform: translateY(1px);
-}
-
-/* Buttons (local to pricing) */
-.pcard .btn{
-  display:inline-flex; align-items:center; justify-content:center;
-  height:40px; padding:0 14px; border-radius:10px; font-weight:600; border:1px solid var(--u-bor);
-  color:var(--u-txt); background:#fff; transition: box-shadow .15s ease, transform .12s ease, border-color .15s ease;
-}
-.pcard .btn:hover{ transform:translateY(-1px); box-shadow:0 8px 22px rgba(17,24,39,.08); }
-.pcard .btn.primary{ background:var(--u-orange); color:#fff; border-color:#ffb485; }
-.pcard .btn.primary:hover{ box-shadow:0 12px 28px rgba(255,122,26,.25); }
-.pcard .btn.ghost{ background:#fff; color:var(--u-orange); border-color:#FFD8BF; }
-
-/* Business highlight */
-.pcard.business{ border-color:#FFD8BF; box-shadow: 0 10px 34px rgba(255,122,26,.10); }
-.pcard.business .badge{ background:#FFEDDF; border-color:#FFD8BF; color:#9A4D18; }
-
-    /* ===== FAQ / Accordion ===== */
-:root{
-  --brand:#FF7A1A;              /* Ultra Orange */
-  --surface:#ffffff;
-  --text:#0F172A;               /* dark slate text */
-  --muted:#6B7280;              /* secondary text */
-  --border:#E5E7EB;             /* soft border */
-}
-
-.faq{ padding:64px 0; }
-.faq .wrap{ max-width:960px; margin:0 auto; }
-.faq h2{
-  text-align:center;
-  font-weight:800;
-  font-size:32px;
-  letter-spacing:-.02em;
-  color:var(--text);
-  margin:0 0 20px;
-}
-.faq .kicker{
-  text-align:center;
-  color:var(--muted);
-  margin-bottom:28px;
-}
-
-/* container */
-.accordion{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:14px;
-  overflow:hidden;
-  box-shadow:0 10px 26px rgba(15,23,42,.06);
-}
-
-/* one item */
-.acc-item + .acc-item{ border-top:1px solid var(--border); }
-.acc-item.open{ box-shadow:inset 3px 0 0 var(--brand); }
-
-/* header button */
-.acc-btn{
-  -webkit-tap-highlight-color:transparent;
-  width:100%;
-  background:var(--surface);
-  color:var(--text);
-  display:flex; align-items:center; justify-content:space-between;
-  gap:16px;
-  padding:18px 22px;
-  font-size:16px; font-weight:700;
-  border:0; outline:0; cursor:pointer;
-  transition:background 120ms ease-out;
-}
-.acc-btn:hover{ background:rgba(255,122,26,.06); }
-.acc-btn:focus-visible{ box-shadow:0 0 0 2px rgba(255,122,26,.35); border-radius:8px; }
-
-/* plus / minus icon */
-.acc-icon{ position:relative; width:22px; height:22px; flex:0 0 22px; }
-.acc-icon::before,
-.acc-icon::after{
-  content:""; position:absolute; left:50%; top:50%;
-  width:16px; height:2px; background:var(--brand);
-  transform:translate(-50%,-50%); transition:transform 120ms ease;
-}
-.acc-icon::after{ transform:translate(-50%,-50%) rotate(90deg); }
-.acc-btn[aria-expanded="true"] .acc-icon::after{ transform:translate(-50%,-50%) rotate(0deg); }
-
-/* panel */
-.acc-panel{
-  max-height:0; overflow:hidden;
-  transition:max-height 220ms ease;
-  background:linear-gradient(0deg, rgba(255,122,26,.06), rgba(255,122,26,.06)) no-repeat;
-}
-.acc-panel-inner{
-  padding:16px 22px 22px;
-  color:var(--muted);
-  line-height:1.6;
-}
-.acc-panel-inner ul{ margin:10px 0 0 18px; }
-.acc-panel-inner li{ margin:4px 0; }
-
-    /* === Hero highlight cards (fresh, scoped) === */
-#hero-cards{
-  margin: 22px auto 8px;
-  display: flex;
-  justify-content: center;
-}
-#hero-cards .hl-grid{
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));  /* full-width, equal columns */
-  gap: 16px;
-  width: 100%;                                       /* fill the .container */
-}
-@media (max-width:1140px){
-  #hero-cards .hl-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width:560px){
-  #hero-cards .hl-grid{ grid-template-columns: 1fr; }
-}
-
-#hero-cards .hl-item{
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 12px 14px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  transition: transform .12s ease-out, box-shadow .12s ease-out;
-}
-#hero-cards .hl-item:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 14px 34px rgba(15,23,42,.08);
-}
-
-#hero-cards .hl-ico{
-  width: 28px; height: 28px;
-  border-radius: 8px;
-  display: grid; place-items: center;
-  background: #FFE6D4;        /* brand-tinted chip */
-  color: #7a3b0a;
-  font-size: 14px; line-height: 1;
-}
-
-/* Responsive: 2-up on tablets, 1-up on phones */
-@media (max-width: 1140px){
-  #hero-cards .hl-grid{ grid-template-columns: repeat(2, 260px); }
-}
-@media (max-width: 560px){
-  #hero-cards .hl-grid{ grid-template-columns: 1fr; }
-}
-
-    /* === Generator centering: use the v1 layout === */
-.app {
-  margin: 60px auto;       /* center */
-  max-width: 1200px;       /* same page width as the rest */
-  padding: 0 20px;
-}
-
-.app .appshell,            /* your current shell is named .appshell */
-.app__shell {              /* keep compatibility if you keep the v1 class */
-  width: 100%;             /* fill the centered wrapper */
-  display: grid;
-  grid-template-columns: minmax(280px, 280px) minmax(0, 1fr); /* robust */
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  background: #fff;
-}
-
-/* prevent grid children from forcing shrink */
-.app .aside,
-.app .main { min-width: 0; }
-
- /* =========================
-   UltraSOP Generator polish
-   ========================= */
-
-/* 1) Widen the generator on desktops (~80% viewport) */
-@media (min-width: 1100px){
-  .app{
-    width: 80vw;            /* target: ~80% of screen width */
-    max-width: 1600px;      /* prevent silly-wide on ultrawide */
-    margin: 48px auto;      /* tidy spacing above/below */
-    padding: 0 20px;        /* keep page gutters */
-  }
-  .app .appshell{ width: 100%; }
-}
-
-/* Keep grid children from forcing shrink */
-.app .aside,
-.app .main,
-.app .editor > *{ min-width: 0; }
-
-/* 2) Premium “signature” look: orange gradient ring + depth */
-.app .appshell{
-  border: 1px solid transparent;                  /* needed for the gradient ring */
-  background:
-    linear-gradient(#fff, #fff) padding-box,      /* actual card surface */
-    linear-gradient(135deg, #FFD1A6, #FF7A1A)     /* brand ring */
-      border-box;
-  box-shadow:
-    0 20px 60px rgba(17,24,39,.10),               /* soft elevation */
-    0 0 0 6px rgba(255,122,26,.06);               /* subtle orange glow */
-  border-radius: 16px;
-}
-
-/* (Optional) a touch more room on the left editor to reduce wrapping.
-   Swap to 1fr 1fr if you prefer true 50/50. */
-.app .editor{
-  grid-template-columns: minmax(520px, 1.25fr) minmax(420px, .95fr);
-}
-
-/* 3) Center and emphasize the generator heading + subheading */
-.app .section-title{
-  text-align: center;
-  font-size: 34px;            /* was smaller; this grabs attention */
-  line-height: 1.2;
-  margin: 8px auto 6px;
-}
-.app .section-sub{
-  text-align: center;
-  color: #6B7280;
-  font-size: 16px;
-  margin: 0 auto 18px;
-}
-
-    /* Sidebar quick templates */
-.qtpl { margin-top: 10px; }
-.qtpl .qtpl-title { font-size: 12px; color: #6B7280; margin: 8px 0 6px; }
-.qtpl-list { display: grid; gap: 6px; }
-.qtpl-btn{
-  display:block; width:100%;
-  text-align:left;
-  border:1px solid var(--border);
-  background:#fff;
-  border-radius:10px;
-  padding:8px 10px;
-  font-size:13px;
-  cursor:pointer;
-}
-.qtpl-btn:hover{ background:#fffdf8; }
-
-/* Step row compact polish (keeps things elegant, not cramped) */
-#steps-list .steprow{ padding:10px; }
-#steps-list .step-title{ font-size:14px; }
-#steps-list .step-details{ margin-top:6px; }
-
-/* Chip buttons for optional controls */
-.chipbtn{
-  border:1px solid #FFD8BF;
-  background:#fff;
-  border-radius:999px;
-  padding:6px 10px;
-  font-size:12px;
-}
-.chipbtn.active{
-  background:#FFF2E5;
-  border-color:#FFB47A;
-  color:#7a3b0a;
-}
-
-/* Wraps that hold optional inputs (hidden until toggled) */
-.ownergroup,.durgroup{ display:none; margin-top:6px; }
-.ownergroup.show,.durgroup.show{ display:block; }
-
-/* Slim footer */
-.site-footer {
-  background: #fff;
-  border-top: 1px solid var(--border);
-  padding: 12px 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-.site-footer .footer-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.site-footer .footer-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;        /* spacing between links */
-  flex-wrap: wrap;  /* avoids overflow on narrow widths */
-}
-.site-footer a {
-  color: var(--muted);
-  text-decoration: none;
-}
-.site-footer a:hover {
-  color: var(--text);           /* stays in your palette */
-  text-decoration: underline;   /* subtle hover affordance */
-}
-
-/* Mobile stack */
-@media (max-width: 640px) {
-  .site-footer .footer-wrap {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .site-footer .footer-right { gap: 12px; }
-}
-
-    /* ===== Testimonials: freeze marquee & use a simple grid ===== */
-.tmarquee{ overflow: visible; }
-.tmarquee::before,
-.tmarquee::after{ display: none; }     /* remove the edge fades */
-
-.ttrack{
-  /* kill the marquee animation */
-  animation: none !important;
-  /* switch from sliding row to a fixed grid */
-  display: grid;
-  grid-template-columns: repeat(4, minmax(260px, 1fr));
-  gap: 16px;
-  align-items: stretch;
-  justify-content: center;
-}
-
-/* cards were sized for a marquee; let them fill the grid cleanly */
-.tcard{
-  flex: initial !important;
-  width: auto !important;
-  max-width: 360px;          /* keep a tidy max width if the grid grows */
-}
-
-/* responsive: 2-up tablet, 1-up phone */
-@media (max-width: 980px){
-  .ttrack{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
-}
-@media (max-width: 560px){
-  .ttrack{ grid-template-columns: 1fr; }
-}
-
-    /* Testimonials – layout fixes */
-.tcard{ min-width:0; }                     /* allow content to shrink inside card */
-.tquote{ margin-bottom:10px; }             /* breathing room above meta row */
-
-/* Avatar + name + stars laid out as 3 columns */
-.tmeta{
-  display:grid;
-  grid-template-columns: 36px 1fr auto;    /* avatar | text grows | stars */
-  gap:10px;
-  align-items:center;
-}
-.tmeta > div:nth-child(2){                 /* the name/role block */
-  min-width:0;                             /* enable ellipsis if ever needed */
-}
-.trating{
-  white-space:nowrap;                      /* keep “★★★★★” on one line */
-}
-
-/* Avatar never squishes; supports either initials or <img> */
-.tavatar{
-  width:36px; height:36px;
-  flex:0 0 36px;                           /* hard stop against shrinking */
-  border-radius:50%;
-  overflow:hidden;                         /* ensure perfect circle crop */
-  background:#FFE6D4;
-  display:grid; place-items:center;
-  font-weight:700; color:#FF7A1A;
-}
-.tavatar img{ width:100%; height:100%; object-fit:cover; display:block; }
-
-/* Make testimonials blend with the page background */
-#testimonials,
-.container.testimonials {
-  background: transparent !important;
-  background-image: none !important;
-}
-
+    #social-proof .muted{display:block; text-align:center; margin:0 auto 12px;}
+    #social-proof .marquee{margin:8px auto 28px; max-width:1200px;}
+    .hero .chip{background:#fff; color:#0F172A; border:1px solid rgba(255,122,26,.45); box-shadow:0 0 0 3px rgba(255,122,26,.12), 0 8px 18px rgba(255,122,26,.18); border-radius:999px; padding:6px 12px; font-weight:600;}
+    .accent{ color:#FF7A1A; }
+    .testimonials{ padding:24px 0 12px; }
+    .tmarquee{overflow:hidden; position:relative; width:100%;}
+    .tmarquee::before,.tmarquee::after{content:""; position:absolute; top:0; bottom:0; width:64px; pointer-events:none;}
+    .tmarquee::before{left:0; background:linear-gradient(to right, #FFFFFF, rgba(255,255,255,0));}
+    .tmarquee::after{right:0; background:linear-gradient(to left, #FFFFFF, rgba(255,255,255,0));}
+    .ttrack{display:flex; gap:16px; align-items:stretch; white-space:nowrap; will-change: transform; padding:8px 0; animation: testimonial-scroll 38s linear infinite;}
+    .ttrack:hover{ animation-play-state: paused; }
+    @keyframes testimonial-scroll{from{ transform: translateX(0);} to{ transform: translateX(-50%);} }
+    .tcard{display:flex; flex-direction:column; justify-content:space-between; flex:0 0 320px; width:320px; background:#fff; border:1px solid var(--border); border-radius:14px; box-shadow:0 10px 26px rgba(15,23,42,.06); padding:14px;}
+    .tquote{color:#1F2937; line-height:1.45; white-space:normal; overflow-wrap:anywhere; word-break:break-word;}
+    .tmeta{ display:flex; align-items:center; gap:10px; margin-top:12px; }
+    .tavatar{width:36px; height:36px; border-radius:50%; background:#FFE6D4; display:grid; place-items:center; font-weight:700; color:#FF7A1A;}
+    .trating{color:#F59E0B; font-size:14px; transform: translateY(-3px); white-space:nowrap;}
+    :root{--how-o:#FF7A1A; --how-line1:#FFD8BD; --how-line2:#FFB07A;}
+    .how2{ padding:64px 0 40px; }
+    .how2 h2{ margin:0 0 8px; }
+    .how2 .hint{ color:#A7ADB7; margin:-2px 0 18px; }
+    .howWrap{display:grid; gap:48px; align-items:start; grid-template-columns:minmax(380px, 640px) 1fr;}
+    @media(max-width:980px){ .howWrap{ grid-template-columns:1fr; gap:24px; } }
+    .hsteps{ position:relative; --lineTop:18px; --lineBottom:18px; padding:0; user-select:none; -webkit-tap-highlight-color:transparent;}
+    .hsteps::before{content:""; position:absolute; left:20px; top:var(--lineTop); bottom:var(--lineBottom); width:2px; background:linear-gradient(var(--how-line1), var(--how-line2)); opacity:.95; pointer-events:none;}
+    .hstep{display:grid; grid-template-columns: 40px 1fr; gap:18px; padding:20px 0; background:none; border:0; text-align:left; cursor:pointer; transition: opacity .25s ease, transform .12s ease;}
+    .hstep:not(.active){ opacity:.55; }
+    .hstep:hover{ opacity:.82; }
+    .hstep .dot{ justify-self:center; align-self:start; width:20px; height:20px; border-radius:50%; background: var(--how-o); box-shadow:0 0 6px rgba(255,122,26,.22); position:relative; margin-top:3px;}
+    .hstep .dot::after{content:""; position:absolute; inset:-6px; border-radius:50%; border:2px solid rgba(255,122,26,.38); transform: scale(.78); opacity:0;}
+    .hstep.active .dot::after{ animation:howRing 1.6s cubic-bezier(.2,.8,.2,1) infinite; opacity:1; }
+    @keyframes howRing{ 0%{transform:scale(.78);opacity:.95} 80%{transform:scale(1.35);opacity:0} 100%{opacity:0} }
+    .hstep .title{ margin:0 0 8px; font-size:22px; line-height:1.25; color:#0F172A; font-weight:700;}
+    .hstep p{ margin:0; color:#556; font-size:16px; line-height:1.6; max-width:560px; }
+    .hmedia{ position:relative; }
+    .hglow{ position:absolute; inset:-60px -40px -40px -40px; background:radial-gradient(520px 360px at 60% 30%, rgba(255,122,26,.16), rgba(255,122,26,0) 60%); filter:blur(6px); pointer-events:none;}
+    .hshot{ position:relative; background:#fff; border:1px solid var(--border); border-radius:18px; box-shadow:0 22px 50px rgba(15,23,42,.12); overflow:hidden;}
+    .hshot img{ display:block; width:100%; height:auto; }
+    .hshot .ph{display:grid; place-items:center; height:460px; color:#8A8F98; text-align:center;}
+    .hshot .ph small{ display:block; color:#A7ADB7; }
+    :root{--how-bg-mask:#ffffff;}
+    html, body{background:#fff!important; background-image:none!important;}
+    .hero,.how2,.features,.pricing,.resources,.container,.section,.page,.appshell{background:#fff!important; background-image:none!important;}
+    body::before,body::after,.hero::before,.hero::after,.how2::before,.how2::after{content:none!important; background:none!important;}
+    .hglow{ display:none!important; }
+    :root{--u-orange:#FF7A1A; --u-txt:#1F2937; --u-sub:#6B7280; --u-bor:#E5E7EB; --u-bg:#FFFFFF;}
+    .pricing2{ padding:72px 0; background:#fff; }
+    .pricing2 .wrap{ max-width:1100px; margin:0 auto; padding:0 20px; }
+    .pricing2 h2{ font-size:34px; line-height:1.15; color:var(--u-txt); margin:0 0 12px; }
+    .pricing2 p.sub{ color:var(--u-sub); margin:0 0 28px; }
+    .pricing2 .toggle{ display:flex; align-items:center; gap:12px; margin:8px 0 28px; color:var(--u-sub); user-select:none;}
+    .pricing2 .switch{ position:relative; width:54px; height:30px; background:#F3F4F6; border-radius:999px; box-shadow: inset 0 0 0 1px var(--u-bor);}
+    .pricing2 .switch i{ position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.12); transition: transform .22s ease-out;}
+    .pricing2 input[type=checkbox]{ position:absolute; opacity:0; inset:0; cursor:pointer; }
+    .pricing2 input[type=checkbox]:checked + .switch i{ transform: translateX(24px); }
+    .pricing2 .save{ font-size:12px; color:#10B981; background:#ECFDF5; border:1px solid #D1FAE5; padding:2px 8px; border-radius:999px; }
+    .pricing2 .grid{ display:grid; grid-template-columns: repeat(3,1fr); gap:20px;}
+    @media (max-width: 900px){ .pricing2 .grid{ grid-template-columns: 1fr; } }
+    .pcard{ background:var(--u-bg); border:1px solid var(--u-bor); border-radius:14px; padding:22px 22px 20px; box-shadow: 0 8px 30px rgba(17,24,39,.06); transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;}
+    .pcard:hover{ transform: translateY(-2px); border-color:#FDE5D4; box-shadow: 0 14px 36px rgba(17,24,39,.08); }
+    .pcard .badge{ display:inline-block; font-size:12px; color:#A15D27; background:#FFF2E9; border:1px solid #FFE3D0; padding:3px 8px; border-radius:999px; margin-bottom:10px;}
+    .pcard h3{ margin:8px 0 2px; font-size:20px; color:var(--u-txt); }
+    .pcard .desc{ color:var(--u-sub); font-size:14px; margin:0 0 14px; }
+    .pcard .price{ display:flex; align-items:baseline; gap:6px; margin:6px 0 12px; }
+    .pcard .price .amt{ font-size:38px; font-weight:700; color:var(--u-txt); }
+    .pcard .price .per{ color:var(--u-sub); }
+    .pcard ul{ list-style:none; padding:0; margin:12px 0 16px; display:grid; gap:8px; }
+    .pcard li{ display:flex; gap:10px; color:var(--u-txt); }
+    .pcard li i{ width:18px; height:18px; border-radius:50%; background:#FFECE0; display:inline-grid; place-items:center; color:var(--u-orange); font-size:12px; transform: translateY(1px);}
+    .pcard .btn{ display:inline-flex; align-items:center; justify-content:center; height:40px; padding:0 14px; border-radius:10px; font-weight:600; border:1px solid var(--u-bor); color:var(--u-txt); background:#fff; transition: box-shadow .15s ease, transform .12s ease, border-color .15s ease;}
+    .pcard .btn:hover{ transform:translateY(-1px); box-shadow:0 8px 22px rgba(17,24,39,.08); }
+    .pcard .btn.primary{ background:var(--u-orange); color:#fff; border-color:#ffb485; }
+    .pcard .btn.primary:hover{ box-shadow:0 12px 28px rgba(255,122,26,.25); }
+    .pcard .btn.ghost{ background:#fff; color:var(--u-orange); border-color:#FFD8BF; }
+    .pcard.business{ border-color:#FFD8BF; box-shadow: 0 10px 34px rgba(255,122,26,.10); }
+    .pcard.business .badge{ background:#FFEDDF; border-color:#FFD8BF; color:#9A4D18; }
+    :root{--brand:#FF7A1A; --surface:#ffffff; --text:#0F172A; --muted:#6B7280; --border:#E5E7EB;}
+    .faq{ padding:64px 0; }
+    .faq .wrap{ max-width:960px; margin:0 auto; }
+    .faq h2{text-align:center;font-weight:800;font-size:32px;letter-spacing:-.02em;color:var(--text);margin:0 0 20px;}
+    .faq .kicker{text-align:center;color:var(--muted);margin-bottom:28px;}
+    .accordion{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 10px 26px rgba(15,23,42,.06);}
+    .acc-item + .acc-item{ border-top:1px solid var(--border); }
+    .acc-item.open{ box-shadow:inset 3px 0 0 var(--brand); }
+    .acc-btn{-webkit-tap-highlight-color:transparent;width:100%;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;font-size:16px;font-weight:700;border:0;outline:0;cursor:pointer;transition:background 120ms ease-out;}
+    .acc-btn:hover{ background:rgba(255,122,26,.06); }
+    .acc-btn:focus-visible{ box-shadow:0 0 0 2px rgba(255,122,26,.35); border-radius:8px; }
+    .acc-icon{ position:relative; width:22px; height:22px; flex:0 0 22px; }
+    .acc-icon::before,.acc-icon::after{content:""; position:absolute; left:50%; top:50%; width:16px; height:2px; background:var(--brand); transform:translate(-50%,-50%); transition:transform 120ms ease;}
+    .acc-icon::after{ transform:translate(-50%,-50%) rotate(90deg); }
+    .acc-btn[aria-expanded="true"] .acc-icon::after{ transform:translate(-50%,-50%) rotate(0deg); }
+    .acc-panel{ max-height:0; overflow:hidden; transition:max-height 220ms ease; background:linear-gradient(0deg, rgba(255,122,26,.06), rgba(255,122,26,.06)) no-repeat;}
+    .acc-panel-inner{ padding:16px 22px 22px; color:var(--muted); line-height:1.6;}
+    .acc-panel-inner ul{ margin:10px 0 0 18px; }
+    .acc-panel-inner li{ margin:4px 0; }
+    #hero-cards{ margin:22px auto 8px; display:flex; justify-content:center;}
+    #hero-cards .hl-grid{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:16px; width:100%;}
+    @media (max-width:1140px){ #hero-cards .hl-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width:560px){ #hero-cards .hl-grid{ grid-template-columns: 1fr; } }
+    #hero-cards .hl-item{ display:flex; gap:12px; align-items:flex-start; padding:12px 14px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); transition: transform .12s ease-out, box-shadow .12s ease-out;}
+    #hero-cards .hl-item:hover{ transform: translateY(-2px); box-shadow: 0 14px 34px rgba(15,23,42,.08); }
+    #hero-cards .hl-ico{ width:28px; height:28px; border-radius:8px; display:grid; place-items:center; background:#FFE6D4; color:#7a3b0a; font-size:14px; line-height:1;}
+    @media (max-width: 1140px){ #hero-cards .hl-grid{ grid-template-columns: repeat(2, 260px); } }
+    @media (max-width: 560px){ #hero-cards .hl-grid{ grid-template-columns: 1fr; } }
+    .app{ margin: 60px auto; max-width: 1200px; padding: 0 20px;}
+    .app .appshell,.app__shell{ width:100%; display:grid; grid-template-columns:minmax(280px, 280px) minmax(0, 1fr); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; background:#fff;}
+    .app .aside,.app .main{ min-width:0; }
+    @media (min-width: 1100px){ .app{ width:80vw; max-width:1600px; margin:48px auto; padding:0 20px;}
+      .app .appshell{ width:100%; } }
+    .app .aside,.app .main,.app .editor > *{ min-width:0; }
+    .app .appshell{ border:1px solid transparent;
+      background:linear-gradient(#fff, #fff) padding-box, linear-gradient(135deg, #FFD1A6, #FF7A1A) border-box;
+      box-shadow:0 20px 60px rgba(17,24,39,.10), 0 0 0 6px rgba(255,122,26,.06);
+      border-radius:16px;}
+    .app .editor{ grid-template-columns: minmax(520px, 1.25fr) minmax(420px, .95fr); }
+    .app .section-title{ text-align:center; font-size:34px; line-height:1.2; margin:8px auto 6px;}
+    .app .section-sub{ text-align:center; color:#6B7280; font-size:16px; margin:0 auto 18px;}
+    .qtpl{ margin-top:10px; }
+    .qtpl .qtpl-title{ font-size:12px; color:#6B7280; margin:8px 0 6px; }
+    .qtpl-list{ display:grid; gap:6px; }
+    .qtpl-btn{ display:block; width:100%; text-align:left; border:1px solid var(--border); background:#fff; border-radius:10px; padding:8px 10px; font-size:13px; cursor:pointer;}
+    .qtpl-btn:hover{ background:#fffdf8; }
+    #steps-list .steprow{ padding:10px; }
+    #steps-list .step-title{ font-size:14px; }
+    #steps-list .step-details{ margin-top:6px; }
+    .chipbtn{ border:1px solid #FFD8BF; background:#fff; border-radius:999px; padding:6px 10px; font-size:12px;}
+    .chipbtn.active{ background:#FFF2E5; border-color:#FFB47A; color:#7a3b0a;}
+    .ownergroup,.durgroup{ display:none; margin-top:6px; }
+    .ownergroup.show,.durgroup.show{ display:block; }
+    .site-footer { background:#fff; border-top:1px solid var(--border); padding:12px 0; font-size:13px; color:var(--muted);}
+    .site-footer .footer-wrap{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .site-footer .footer-right{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+    .site-footer a{ color:var(--muted); text-decoration:none; }
+    .site-footer a:hover{ color:var(--text); text-decoration:underline; }
+    @media (max-width: 640px){
+      .site-footer .footer-wrap{ flex-direction:column; align-items:flex-start; gap:8px; }
+      .site-footer .footer-right{ gap:12px; }
+    }
+    .tmarquee{ overflow:visible; }
+    .tmarquee::before,.tmarquee::after{ display:none; }
+    .ttrack{ animation:none!important; display:grid; grid-template-columns:repeat(4, minmax(260px, 1fr)); gap:16px; align-items:stretch; justify-content:center;}
+    .tcard{ flex:initial!important; width:auto!important; max-width:360px; }
+    @media (max-width: 980px){ .ttrack{ grid-template-columns:repeat(2, minmax(260px, 1fr)); } }
+    @media (max-width: 560px){ .ttrack{ grid-template-columns:1fr; } }
+    .tcard{ min-width:0; }
+    .tquote{ margin-bottom:10px; }
+    .tmeta{ display:grid; grid-template-columns:36px 1fr auto; gap:10px; align-items:center;}
+    .tmeta > div:nth-child(2){ min-width:0; }
+    .trating{ white-space:nowrap; }
+    .tavatar{ width:36px; height:36px; flex:0 0 36px; border-radius:50%; overflow:hidden; background:#FFE6D4; display:grid; place-items:center; font-weight:700; color:#FF7A1A;}
+    .tavatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+    #testimonials,.container.testimonials{ background:transparent!important; background-image:none!important; }
   </style>
 </head>
 <body>
@@ -847,168 +275,150 @@ body::after,
 
   <!-- HERO -->
   <header class="hero container" id="product">
-  <div class="grid" style="grid-template-columns:1.1fr .9fr; gap:24px; align-items:center">
-    <!-- Left: existing copy + CTAs -->
-    <div>
-      <div class="chips">
-        <span class="chip">Voice → SOP</span>
-        <span class="chip">Built-in versioning</span>
-        <span class="chip">1-click PDF & share</span>
-      </div>
-      <h1>Turn voice & notes into <span class="accent">spotless SOPs</span> in minutes</h1>
-      <p>Turn messy instructions into beautiful, shareable playbooks. Record or paste, edit in seconds, save versions, and export a polished PDF.</p>
-      <div style="display:flex;gap:10px;margin-top:10px">
-        <button class="btn btn--cta" id="hero-try">Try the Generator</button>
-        <button class="btn" id="hero-learn">Get Started Free</button>
-      </div>
-    </div>
-
-    <!-- Right: screenshot placeholder + auto-hide when img loads -->
-    <div>
-      <!-- Placeholder card (shows until image loads) -->
-      <div id="hero-shot-ph" class="card" style="height:320px; display:grid; place-items:center; text-align:center">
-        <div>
-          <div style="font-weight:700; margin-bottom:6px">Your screenshot goes here</div>
-          <div class="muted" style="font-size:12px">Upload <code>/assets/hero.png</code><br> (we’ll swap it in automatically)</div>
+    <div class="grid" style="grid-template-columns:1.1fr .9fr; gap:24px; align-items:center">
+      <div>
+        <div class="chips">
+          <span class="chip">Voice → SOP</span>
+          <span class="chip">Built-in versioning</span>
+          <span class="chip">1-click PDF & share</span>
+        </div>
+        <h1>Turn voice & notes into <span class="accent">spotless SOPs</span> in minutes</h1>
+        <p>Turn messy instructions into beautiful, shareable playbooks. Record or paste, edit in seconds, save versions, and export a polished PDF.</p>
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <button class="btn btn--cta" id="hero-try">Try the Generator</button>
+          <button class="btn" id="hero-learn">Get Started Free</button>
         </div>
       </div>
-      <!-- Real image (hidden until it loads; falls back to placeholder on error) -->
-      <img
-        id="hero-shot"
-        src="/assets/hero.png"
-        alt="UltraSOP — product preview"
-        style="display:none; width:100%; border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow)"
-        onload="this.style.display='block'; document.getElementById('hero-shot-ph').style.display='none';"
-        onerror="this.style.display='none'; document.getElementById('hero-shot-ph').style.display='grid';"
-      />
-    </div>
-  </div>
-</header>
-
-  <!-- Hero highlight cards (fresh) -->
-<section id="hero-cards" class="container" aria-label="Key benefits">
-  <div class="hl-grid">
-    <article class="hl-item">
-      <span class="hl-ico" aria-hidden="true">🎤</span>
       <div>
-        <strong>Record or paste</strong>
-        <div class="muted small">Turn voice or notes into structured steps.</div>
-      </div>
-    </article>
-
-    <article class="hl-item">
-      <span class="hl-ico" aria-hidden="true">✏️</span>
-      <div>
-        <strong>Edit & reorder</strong>
-        <div class="muted small">Inline edits with ↑/↓ and quick delete.</div>
-      </div>
-    </article>
-
-    <article class="hl-item">
-      <span class="hl-ico" aria-hidden="true">🗂️</span>
-      <div>
-        <strong>Save versions</strong>
-        <div class="muted small">Snapshot with notes; restore anytime.</div>
-      </div>
-    </article>
-
-    <article class="hl-item">
-      <span class="hl-ico" aria-hidden="true">📄</span>
-      <div>
-        <strong>Export & share</strong>
-        <div class="muted small">Polished PDF and optional public link.</div>
-      </div>
-    </article>
-  </div>
-</section>
-
-<!-- S4b: How UltraSOP works -->
-<section class="container how2" id="how">
-  <h2>Here’s how UltraSOP works</h2>
-  <div class="hint">Hint: it’s incredibly easy!</div>
-
-  <div class="howWrap">
-    <!-- LEFT: steps -->
-<div class="hsteps" id="how-steps">
-  <!-- Step 1 -->
-  <button class="hstep active" type="button" aria-current="step" data-gif="/assets/how-1.gif">
-    <span class="dot" aria-hidden="true"></span>
-    <div class="txt">
-      <div class="title">Step 1: Capture any process</div>
-      <p>Record a quick voice note, upload audio, or paste rough notes. UltraSOP transcribes and pulls out key actions automatically.</p>
-    </div>
-  </button>
-
-  <!-- Step 2 -->
-  <button class="hstep" type="button" data-gif="/assets/how-2.gif">
-    <span class="dot" aria-hidden="true"></span>
-    <div class="txt">
-      <div class="title">Step 2: Generate the first draft</div>
-      <p>AI converts your capture into a structured SOP: clear steps, owners, prerequisites, checklists, and time estimates—plus quality warnings.</p>
-    </div>
-  </button>
-
-  <!-- Step 3 -->
-  <button class="hstep" type="button" data-gif="/assets/how-3.gif">
-    <span class="dot" aria-hidden="true"></span>
-    <div class="txt">
-      <div class="title">Step 3: Apply templates &amp; standards</div>
-      <p>Start from best-practice templates, auto-insert your team’s roles, and enforce required checks (SLA, QA, security) for audits.</p>
-    </div>
-  </button>
-
-  <!-- Step 4 -->
-  <button class="hstep" type="button" data-gif="/assets/how-4.gif">
-    <span class="dot" aria-hidden="true"></span>
-    <div class="txt">
-      <div class="title">Step 4: Refine, reorder &amp; version</div>
-      <p>Drag to reorder steps, edit inline, add screenshots and checks, then <strong>Save Version</strong> with notes. Restore any version with one click.</p>
-    </div>
-  </button>
-
-  <!-- Step 5 -->
-  <button class="hstep" type="button" data-gif="/assets/how-5.gif">
-    <span class="dot" aria-hidden="true"></span>
-    <div class="txt">
-      <div class="title">Step 5: Export &amp; share securely</div>
-      <p>Download a polished PDF, push to Notion, or share a read-only public link you can revoke anytime.</p>
-    </div>
-  </button>
-</div>
-
-    <!-- RIGHT: media -->
-    <div class="hmedia">
-      <div class="hglow" aria-hidden="true"></div>
-      <div class="hshot">
-        <img src="/assets/how.gif" alt="UltraSOP demo"
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';">
-        <div class="ph" style="display:none">
+        <div id="hero-shot-ph" class="card" style="height:320px; display:grid; place-items:center; text-align:center">
           <div>
-            <strong>Your demo GIF goes here</strong><br/>
-            <small>Upload <code>/assets/how.gif</code> — we’ll load it automatically.</small>
+            <div style="font-weight:700; margin-bottom:6px">Your screenshot goes here</div>
+            <div class="muted" style="font-size:12px">Upload <code>/assets/hero.png</code><br> (we’ll swap it in automatically)</div>
+          </div>
+        </div>
+        <img
+          id="hero-shot"
+          src="/assets/hero.png"
+          alt="UltraSOP — product preview"
+          style="display:none; width:100%; border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow)"
+          onload="this.style.display='block'; document.getElementById('hero-shot-ph').style.display='none';"
+          onerror="this.style.display='none'; document.getElementById('hero-shot-ph').style.display='grid';"
+        />
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero highlight cards -->
+  <section id="hero-cards" class="container" aria-label="Key benefits">
+    <div class="hl-grid">
+      <article class="hl-item">
+        <span class="hl-ico" aria-hidden="true">🎤</span>
+        <div>
+          <strong>Record or paste</strong>
+          <div class="muted small">Turn voice or notes into structured steps.</div>
+        </div>
+      </article>
+
+      <article class="hl-item">
+        <span class="hl-ico" aria-hidden="true">✏️</span>
+        <div>
+          <strong>Edit & reorder</strong>
+          <div class="muted small">Inline edits with ↑/↓ and quick delete.</div>
+        </div>
+      </article>
+
+      <article class="hl-item">
+        <span class="hl-ico" aria-hidden="true">🗂️</span>
+        <div>
+          <strong>Save versions</strong>
+          <div class="muted small">Snapshot with notes; restore anytime.</div>
+        </div>
+      </article>
+
+      <article class="hl-item">
+        <span class="hl-ico" aria-hidden="true">📄</span>
+        <div>
+          <strong>Export & share</strong>
+          <div class="muted small">Polished PDF and optional public link.</div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="container how2" id="how">
+    <h2>Here’s how UltraSOP works</h2>
+    <div class="hint">Hint: it’s incredibly easy!</div>
+
+    <div class="howWrap">
+      <div class="hsteps" id="how-steps">
+        <button class="hstep active" type="button" aria-current="step" data-gif="/assets/how-1.gif">
+          <span class="dot" aria-hidden="true"></span>
+          <div class="txt">
+            <div class="title">Step 1: Capture any process</div>
+            <p>Record a quick voice note, upload audio, or paste rough notes. UltraSOP transcribes and pulls out key actions automatically.</p>
+          </div>
+        </button>
+        <button class="hstep" type="button" data-gif="/assets/how-2.gif">
+          <span class="dot" aria-hidden="true"></span>
+          <div class="txt">
+            <div class="title">Step 2: Generate the first draft</div>
+            <p>AI converts your capture into a structured SOP: clear steps, owners, prerequisites, checklists, and time estimates—plus quality warnings.</p>
+          </div>
+        </button>
+        <button class="hstep" type="button" data-gif="/assets/how-3.gif">
+          <span class="dot" aria-hidden="true"></span>
+          <div class="txt">
+            <div class="title">Step 3: Apply templates &amp; standards</div>
+            <p>Start from best-practice templates, auto-insert your team’s roles, and enforce required checks (SLA, QA, security) for audits.</p>
+          </div>
+        </button>
+        <button class="hstep" type="button" data-gif="/assets/how-4.gif">
+          <span class="dot" aria-hidden="true"></span>
+          <div class="txt">
+            <div class="title">Step 4: Refine, reorder &amp; version</div>
+            <p>Drag to reorder steps, edit inline, add screenshots and checks, then <strong>Save Version</strong> with notes. Restore any version with one click.</p>
+          </div>
+        </button>
+        <button class="hstep" type="button" data-gif="/assets/how-5.gif">
+          <span class="dot" aria-hidden="true"></span>
+          <div class="txt">
+            <div class="title">Step 5: Export &amp; share securely</div>
+            <p>Download a polished PDF, push to Notion, or share a read-only public link you can revoke anytime.</p>
+          </div>
+        </button>
+      </div>
+
+      <div class="hmedia">
+        <div class="hglow" aria-hidden="true"></div>
+        <div class="hshot">
+          <img src="/assets/how.gif" alt="UltraSOP demo"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';">
+          <div class="ph" style="display:none">
+            <div>
+              <strong>Your demo GIF goes here</strong><br/>
+              <small>Upload <code>/assets/how.gif</code> — we’ll load it automatically.</small>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-  <!-- APP DEMO -->
+  <!-- App demo -->
   <section id="app" class="app">
-  <h2 class="section-title">UltraSOP Generator</h2>
-  <p class="section-sub">Record, paste, or import — then edit steps and save versions.</p>
+    <h2 class="section-title">UltraSOP Generator</h2>
+    <p class="section-sub">Record, paste, or import — then edit steps and save versions.</p>
 
-  <div class="appshell">
-
+    <div class="appshell">
       <aside class="aside">
         <button class="tabbtn active" data-tab="editor">Editor</button>
         <button class="tabbtn" data-tab="versions">Versions</button>
         <button class="tabbtn" data-tab="settings">Settings</button>
         <div class="qtpl" id="qtpl">
-  <div class="qtpl-title">Quick templates</div>
-  <div id="qtpl-list" class="qtpl-list"></div>
-</div>
-
+          <div class="qtpl-title">Quick templates</div>
+          <div id="qtpl-list" class="qtpl-list"></div>
+        </div>
       </aside>
 
       <div class="main">
@@ -1019,9 +429,7 @@ body::after,
             <button class="btn" id="btn-save">Save Version</button>
             <button class="btn" id="btn-dup">Duplicate</button>
             <button class="btn" id="btn-rewrite-all">✨ Enhance steps</button>
-            <!-- Removed: New SOP -->
           </div>
-
         </div>
 
         <div class="tab visible" id="tab-editor">
@@ -1032,16 +440,15 @@ body::after,
               <label class="lbl" for="sop-summary">Summary</label>
               <textarea id="sop-summary" class="textarea" rows="3"></textarea>
               <div class="lbl" style="margin-top:12px">Steps</div>
-<button class="btn" id="btn-add-step" style="margin:6px 0 8px">Add Step</button>
-<ul id="steps-list" class="steps"></ul>
+              <button class="btn" id="btn-add-step" style="margin:6px 0 8px">Add Step</button>
+              <ul id="steps-list" class="steps"></ul>
             </div>
             <div>
               <div class="lbl">Preview</div>
-             <div id="enhance-status" style="display:none;align-items:center;gap:8px;font-size:12px;color:#6B7280;margin:4px 0 8px"><span class="spin"></span><span>Enhancing…</span></div>
+              <div id="enhance-status" style="display:none;align-items:center;gap:8px;font-size:12px;color:#6B7280;margin:4px 0 8px"><span class="spin"></span><span>Enhancing…</span></div>
               <div id="preview" class="preview"></div>
               <button class="btn" id="btn-download-pdf" style="margin-top:8px">Download PDF</button>
               <div style="margin-top:12px">
-                <div class="lbl" style="display:none">SOP JSON</div>
                 <pre id="jsonbox" class="sopbox" style="display:none"></pre>
               </div>
               <div class="metrics" id="metrics">—</div>
@@ -1050,290 +457,240 @@ body::after,
         </div>
 
         <div class="tab" id="tab-versions">
-  <div class="lbl">Version history</div>
-  <div id="versions-list" class="grid" style="grid-template-columns:1fr; gap:10px"></div>
-  <p class="muted" style="font-size:12px">Tip: use “Save Version” in the top bar to create a snapshot.</p>
-</div>
+          <div class="lbl">Version history</div>
+          <div id="versions-list" class="grid" style="grid-template-columns:1fr; gap:10px"></div>
+          <p class="muted" style="font-size:12px">Tip: use “Save Version” in the top bar to create a snapshot.</p>
+        </div>
+
         <div class="tab" id="tab-settings"><p class="muted" style="padding:8px 2px">Settings (mock).</p></div>
       </div>
     </div>
-      </section>
-    
+  </section>
 
   <!-- Testimonials -->
-<section class="app testimonials" id="testimonials">
-  <div class="muted" style="text-align:center; margin-bottom:10px;">What customers say</div>
-
-  <div class="tmarquee" aria-label="Customer testimonials">
-    <div class="ttrack">
-      <!-- Row A -->
-      <article class="tcard">
-        <div class="tquote">“UltraSOP turned a 20-min ramble into a clean, 7-step SOP. We shipped it to the team in under 5 minutes.”</div>
-        <div class="tmeta">
-          <div class="tavatar">
-            <img src="/assets/avatars/shay.jpg" alt="Shay S. headshot">
+  <section class="app testimonials" id="testimonials">
+    <div class="muted" style="text-align:center; margin-bottom:10px;">What customers say</div>
+    <div class="tmarquee" aria-label="Customer testimonials">
+      <div class="ttrack">
+        <article class="tcard">
+          <div class="tquote">“UltraSOP turned a 20-min ramble into a clean, 7-step SOP. We shipped it to the team in under 5 minutes.”</div>
+          <div class="tmeta">
+            <div class="tavatar"><img src="/assets/avatars/shay.jpg" alt="Shay S. headshot"></div>
+            <div><strong>Shay S.</strong><div class="muted small">Founder, Growth Studio</div></div>
+            <div class="trating">★★★★★</div>
           </div>
-          <div>
-            <strong>Shay S.</strong><div class="muted small">Founder, Growth Studio</div>
+        </article>
+        <article class="tcard">
+          <div class="tquote">“The versioning is gold. I can restore any snapshot with notes—no more messy docs.”</div>
+          <div class="tmeta">
+            <div class="tavatar"><img src="/assets/avatars/jay.jpg" alt="Jay L. headshot"></div>
+            <div><strong>Jay L.</strong><div class="muted small">Ops Lead</div></div>
+            <div class="trating">★★★★★</div>
           </div>
-          <div class="trating">★★★★★</div>
-        </div>
-      </article>
-
-      <article class="tcard">
-        <div class="tquote">“The versioning is gold. I can restore any snapshot with notes—no more messy docs.”</div>
-        <div class="tmeta">
-          <div class="tavatar">
-            <img src="/assets/avatars/jay.jpg" alt="Jay L. headshot">
+        </article>
+        <article class="tcard">
+          <div class="tquote">“Export to PDF looks polished. Clients actually read it.”</div>
+          <div class="tmeta">
+            <div class="tavatar"><img src="/assets/avatars/alice.jpg" alt="Alice M. headshot"></div>
+            <div><strong>Alice M.</strong><div class="muted small">Agency Owner</div></div>
+            <div class="trating">★★★★☆</div>
           </div>
-          <div>
-            <strong>Jay L.</strong><div class="muted small">Ops Lead</div>
+        </article>
+        <article class="tcard">
+          <div class="tquote">“Recorded a quick walkthrough, UltraSOP did the rest. Huge time-saver.”</div>
+          <div class="tmeta">
+            <div class="tavatar"><img src="/assets/avatars/kiran.jpg" alt="Kiran B. headshot"></div>
+            <div><strong>Kiran B.</strong><div class="muted small">Success Manager</div></div>
+            <div class="trating">★★★★★</div>
           </div>
-          <div class="trating">★★★★★</div>
-        </div>
-      </article>
-
-      <article class="tcard">
-        <div class="tquote">“Export to PDF looks polished. Clients actually read it.”</div>
-        <div class="tmeta">
-          <div class="tavatar">
-            <img src="/assets/avatars/alice.jpg" alt="Alice M. headshot">
-          </div>
-          <div>
-            <strong>Alice M.</strong><div class="muted small">Agency Owner</div>
-          </div>
-          <div class="trating">★★★★☆</div>
-        </div>
-      </article>
-
-      <article class="tcard">
-        <div class="tquote">“Recorded a quick walkthrough, UltraSOP did the rest. Huge time-saver.”</div>
-        <div class="tmeta">
-          <div class="tavatar">
-            <img src="/assets/avatars/kiran.jpg" alt="Kiran B. headshot">
-          </div>
-          <div>
-            <strong>Kiran B.</strong><div class="muted small">Success Manager</div>
-          </div>
-          <div class="trating">★★★★★</div>
-        </div>
-      </article>
+        </article>
+      </div>
     </div>
-  </div>
-</section>
-  
-<section id="faq" class="faq">
-  <div class="wrap">
-    <h2>FAQs</h2>
-    <p class="kicker">Quick answers about UltraSOP</p>
+  </section>
 
-    <div class="accordion" role="region" aria-label="Frequently Asked Questions">
-      <!-- Item 1 -->
-      <div class="acc-item">
-        <button class="acc-btn" aria-expanded="true" aria-controls="faq1" id="faq1-heading">
-          <span>How does UltraSOP generate SOPs?</span>
-          <span class="acc-icon" aria-hidden="true"></span>
-        </button>
-        <div id="faq1" class="acc-panel" role="region" aria-labelledby="faq1-heading">
-          <div class="acc-panel-inner">
-            UltraSOP uses AI to turn your voice notes or pasted instructions into a clean,
-            structured SOP with steps, owners, checks and time estimates.
+  <!-- FAQ -->
+  <section id="faq" class="faq">
+    <div class="wrap">
+      <h2>FAQs</h2>
+      <p class="kicker">Quick answers about UltraSOP</p>
+      <div class="accordion" role="region" aria-label="Frequently Asked Questions">
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="true" aria-controls="faq1" id="faq1-heading">
+            <span>How does UltraSOP generate SOPs?</span><span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div id="faq1" class="acc-panel" role="region" aria-labelledby="faq1-heading">
+            <div class="acc-panel-inner">
+              UltraSOP uses AI to turn your voice notes or pasted instructions into a clean,
+              structured SOP with steps, owners, checks and time estimates.
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false" aria-controls="faq2" id="faq2-heading">
+            <span>Can I edit the steps after generation?</span><span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div id="faq2" class="acc-panel" role="region" aria-labelledby="faq2-heading">
+            <div class="acc-panel-inner">
+              Yes. Re-order steps, add screenshots, tweak details and save new versions instantly.
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false" aria-controls="faq3" id="faq3-heading">
+            <span>Do you support PDF & Notion export?</span><span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div id="faq3" class="acc-panel" role="region" aria-labelledby="faq3-heading">
+            <div class="acc-panel-inner">
+              Pro plans include polished PDF export. Notion export is built-in with OAuth.
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false" aria-controls="faq4" id="faq4-heading">
+            <span>What’s included in the free plan?</span><span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div id="faq4" class="acc-panel" role="region" aria-labelledby="faq4-heading">
+            <div class="acc-panel-inner">
+              Create up to 3 SOPs, edit & reorder, and keep a local version history. Upgrade
+              when you need exports, advanced templates, and team features.
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false" aria-controls="faq5" id="faq5-heading">
+            <span>Is my data private and secure?</span><span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div id="faq5" class="acc-panel" role="region" aria-labelledby="faq5-heading">
+            <div class="acc-panel-inner">
+              Your SOPs live in your workspace. All traffic is over HTTPS and sensitive tokens are
+              encrypted. Public share links are tokenized and can be revoked anytime. You can delete
+              your data from Settings whenever you need.
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false" aria-controls="faq6" id="faq6-heading">
+            <span>Can I import existing docs or start from templates?</span><span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div id="faq6" class="acc-panel" role="region" aria-labelledby="faq6-heading">
+            <div class="acc-panel-inner">
+              Yes. Paste any text to generate a SOP, upload audio files (.mp3, .m4a, .webm) for
+              transcription, or start from ready-made templates. You can edit steps after import
+              and save new versions instantly.
+            </div>
           </div>
         </div>
       </div>
+    </div>
+  </section>
 
-      <!-- Item 2 -->
-      <div class="acc-item">
-        <button class="acc-btn" aria-expanded="false" aria-controls="faq2" id="faq2-heading">
-          <span>Can I edit the steps after generation?</span>
-          <span class="acc-icon" aria-hidden="true"></span>
-        </button>
-        <div id="faq2" class="acc-panel" role="region" aria-labelledby="faq2-heading">
-          <div class="acc-panel-inner">
-            Yes. Re-order steps, add screenshots, tweak details and save new versions instantly.
-          </div>
-        </div>
+  <!-- Social proof -->
+  <section class="container" id="social-proof" style="padding:8px 0 20px">
+    <div class="muted" style="font-size:12px; text-transform:uppercase; letter-spacing:.12em">
+      Trusted by teams at
+    </div>
+    <div class="marquee" aria-label="Customer logos marquee">
+      <div class="marquee__track">
+        <span class="marquee__item">Acme</span>
+        <span class="marquee__item">NovaCloud</span>
+        <span class="marquee__item">FluxHR</span>
+        <span class="marquee__item">Helio Labs</span>
+        <span class="marquee__item">Orbitly</span>
+        <span class="marquee__item">PixelBank</span>
+        <span class="marquee__item">AtlasOps</span>
+        <span class="marquee__item">Northstar</span>
+        <span class="marquee__item">Acme</span>
+        <span class="marquee__item">NovaCloud</span>
+        <span class="marquee__item">FluxHR</span>
+        <span class="marquee__item">Helio Labs</span>
+        <span class="marquee__item">Orbitly</span>
+        <span class="marquee__item">PixelBank</span>
+        <span class="marquee__item">AtlasOps</span>
+        <span class="marquee__item">Northstar</span>
       </div>
-
-      <!-- Item 3 -->
-      <div class="acc-item">
-        <button class="acc-btn" aria-expanded="false" aria-controls="faq3" id="faq3-heading">
-          <span>Do you support PDF & Notion export?</span>
-          <span class="acc-icon" aria-hidden="true"></span>
-        </button>
-        <div id="faq3" class="acc-panel" role="region" aria-labelledby="faq3-heading">
-          <div class="acc-panel-inner">
-            Pro plans include polished PDF export. Notion export is built-in with OAuth.
-          </div>
-        </div>
-      </div>
-
-      <!-- Item 4 -->
-      <div class="acc-item">
-        <button class="acc-btn" aria-expanded="false" aria-controls="faq4" id="faq4-heading">
-          <span>What’s included in the free plan?</span>
-          <span class="acc-icon" aria-hidden="true"></span>
-        </button>
-        <div id="faq4" class="acc-panel" role="region" aria-labelledby="faq4-heading">
-          <div class="acc-panel-inner">
-            Create up to 3 SOPs, edit & reorder, and keep a local version history. Upgrade
-            when you need exports, advanced templates, and team features.
-          </div>
-        </div>
-      </div>
-
-      <!-- Item 5 -->
-<div class="acc-item">
-  <button class="acc-btn" aria-expanded="false" aria-controls="faq5" id="faq5-heading">
-    <span>Is my data private and secure?</span>
-    <span class="acc-icon" aria-hidden="true"></span>
-  </button>
-  <div id="faq5" class="acc-panel" role="region" aria-labelledby="faq5-heading">
-    <div class="acc-panel-inner">
-      Your SOPs live in your workspace. All traffic is over HTTPS and sensitive tokens are
-      encrypted. Public share links are tokenized and can be revoked anytime. You can delete
-      your data from Settings whenever you need.
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- Item 6 -->
-<div class="acc-item">
-  <button class="acc-btn" aria-expanded="false" aria-controls="faq6" id="faq6-heading">
-    <span>Can I import existing docs or start from templates?</span>
-    <span class="acc-icon" aria-hidden="true"></span>
-  </button>
-  <div id="faq6" class="acc-panel" role="region" aria-labelledby="faq6-heading">
-    <div class="acc-panel-inner">
-      Yes. Paste any text to generate a SOP, upload audio files (.mp3, .m4a, .webm) for
-      transcription, or start from ready-made templates. You can edit steps after import
-      and save new versions instantly.
-    </div>
-  </div>
-</div>
-    </div>
-  </div>
-</section>
-
-
-   <!-- Social proof strip -->
-<section class="container" id="social-proof" style="padding:8px 0 20px">
-  <div class="muted" style="font-size:12px; text-transform:uppercase; letter-spacing:.12em">
-    Trusted by teams at
-  </div>
-
-  <!-- animated logo/text marquee -->
-  <div class="marquee" aria-label="Customer logos marquee">
-    <div class="marquee__track">
-      <!-- Row A -->
-      <span class="marquee__item">Acme</span>
-      <span class="marquee__item">NovaCloud</span>
-      <span class="marquee__item">FluxHR</span>
-      <span class="marquee__item">Helio Labs</span>
-      <span class="marquee__item">Orbitly</span>
-      <span class="marquee__item">PixelBank</span>
-      <span class="marquee__item">AtlasOps</span>
-      <span class="marquee__item">Northstar</span>
-      <!-- Row B (duplicate for seamless loop) -->
-      <span class="marquee__item">Acme</span>
-      <span class="marquee__item">NovaCloud</span>
-      <span class="marquee__item">FluxHR</span>
-      <span class="marquee__item">Helio Labs</span>
-      <span class="marquee__item">Orbitly</span>
-      <span class="marquee__item">PixelBank</span>
-      <span class="marquee__item">AtlasOps</span>
-      <span class="marquee__item">Northstar</span>
-    </div>
-  </div>
-</section>
-
+  <!-- Pricing -->
   <section class="pricing2" id="pricing">
-  <div class="wrap">
-    <h2>Simple, fair pricing</h2>
-    <p class="sub">Start free. Upgrade when you need exports, advanced templates, and team features.</p>
+    <div class="wrap">
+      <h2>Simple, fair pricing</h2>
+      <p class="sub">Start free. Upgrade when you need exports, advanced templates, and team features.</p>
+      <div class="toggle" aria-label="Billing period">
+        <span>Monthly</span>
+        <label style="position:relative; display:inline-flex; align-items:center;">
+          <input id="billToggle" type="checkbox" aria-label="Toggle annual billing">
+          <span class="switch"><i></i></span>
+        </label>
+        <span>Annual</span>
+        <span class="save">save 20%</span>
+      </div>
 
-    <!-- Toggle -->
-    <div class="toggle" aria-label="Billing period">
-      <span>Monthly</span>
-      <label style="position:relative; display:inline-flex; align-items:center;">
-        <input id="billToggle" type="checkbox" aria-label="Toggle annual billing">
-        <span class="switch"><i></i></span>
-      </label>
-      <span>Annual</span>
-      <span class="save">save 20%</span>
+      <div class="grid" id="pricingGrid">
+        <article class="pcard" data-month="0" data-year="0">
+          <span class="badge">Free</span>
+          <h3>Starter</h3>
+          <p class="desc">Try UltraSOP with core features.</p>
+          <div class="price"><span class="amt">$0</span><span class="per">/mo</span></div>
+          <ul>
+            <li><i>✓</i> 3 SOPs</li>
+            <li><i>✓</i> Edit & reorder</li>
+            <li><i>✓</i> Version history (local)</li>
+            <li><i>✓</i> Basic templates</li>
+          </ul>
+          <a href="#app" class="btn primary">Get Started Free</a>
+        </article>
+
+        <article class="pcard" data-month="12" data-year="9.6">
+          <span class="badge">Pro</span>
+          <h3>Professional</h3>
+          <p class="desc">Unlimited SOPs + exports.</p>
+          <div class="price"><span class="amt">$12</span><span class="per">/mo</span></div>
+          <ul>
+            <li><i>✓</i> Unlimited SOPs</li>
+            <li><i>✓</i> PDF export</li>
+            <li><i>✓</i> Notion export</li>
+            <li><i>✓</i> Priority support</li>
+          </ul>
+          <a href="#app" class="btn primary">Upgrade to Pro</a>
+        </article>
+
+        <article class="pcard business" data-month="29" data-year="23.2">
+          <span class="badge">Business</span>
+          <h3>Teams</h3>
+          <p class="desc">Roles, audit log, & SLA.</p>
+          <div class="price"><span class="amt">$29</span><span class="per">/mo</span></div>
+          <ul>
+            <li><i>✓</i> Everything in Pro</li>
+            <li><i>✓</i> Workspaces & roles</li>
+            <li><i>✓</i> Activity log & SSO (soon)</li>
+            <li><i>✓</i> Email SLAs</li>
+          </ul>
+          <a href="#app" class="btn ghost">Talk to Sales</a>
+        </article>
+      </div>
     </div>
+  </section>
 
-    <!-- Plans -->
-    <div class="grid" id="pricingGrid">
-      <!-- Free -->
-      <article class="pcard" data-month="0" data-year="0">
-        <span class="badge">Free</span>
-        <h3>Starter</h3>
-        <p class="desc">Try UltraSOP with core features.</p>
-        <div class="price">
-          <span class="amt">$0</span><span class="per">/mo</span>
-        </div>
-        <ul>
-          <li><i>✓</i> 3 SOPs</li>
-          <li><i>✓</i> Edit & reorder</li>
-          <li><i>✓</i> Version history (local)</li>
-          <li><i>✓</i> Basic templates</li>
-        </ul>
-        <a href="#app" class="btn primary">Get Started Free</a>
-      </article>
-
-      <!-- Pro -->
-      <article class="pcard" data-month="12" data-year="9.6">
-        <span class="badge">Pro</span>
-        <h3>Professional</h3>
-        <p class="desc">Unlimited SOPs + exports.</p>
-        <div class="price">
-          <span class="amt">$12</span><span class="per">/mo</span>
-        </div>
-        <ul>
-          <li><i>✓</i> Unlimited SOPs</li>
-          <li><i>✓</i> PDF export</li>
-          <li><i>✓</i> Notion export</li>
-          <li><i>✓</i> Priority support</li>
-        </ul>
-        <a href="#app" class="btn primary">Upgrade to Pro</a>
-      </article>
-
-      <!-- Business -->
-      <article class="pcard business" data-month="29" data-year="23.2">
-        <span class="badge">Business</span>
-        <h3>Teams</h3>
-        <p class="desc">Roles, audit log, & SLA.</p>
-        <div class="price">
-          <span class="amt">$29</span><span class="per">/mo</span>
-        </div>
-        <ul>
-          <li><i>✓</i> Everything in Pro</li>
-          <li><i>✓</i> Workspaces & roles</li>
-          <li><i>✓</i> Activity log & SSO (soon)</li>
-          <li><i>✓</i> Email SLAs</li>
-        </ul>
-        <a href="#app" class="btn ghost">Talk to Sales</a>
-      </article>
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-wrap">
+      <div class="footer-left">UltraSOP © <span id="year">2025</span></div>
+      <nav class="footer-right">
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/security">Security</a>
+        <a href="/contact">Contact</a>
+      </nav>
     </div>
-  </div>
-</section>
+  </footer>
 
-<!-- Footer -->
-<footer class="site-footer">
-  <div class="container footer-wrap">
-    <div class="footer-left">UltraSOP © 2025</div>
-    <nav class="footer-right">
-      <a href="/privacy">Privacy</a>
-      <a href="/terms">Terms</a>
-      <a href="/security">Security</a>
-      <a href="/contact">Contact</a>
-    </nav>
-  </div>
-</footer>
-
-
-  <!-- GENERATE MODAL -->
+  <!-- Modal + overlay + toast -->
   <div class="modal" id="gen-modal" aria-hidden="true">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="gen-title">
       <div class="dialog-h">
@@ -1345,7 +702,6 @@ body::after,
           <button class="segbtn active" data-panel="text">Text</button>
           <button class="segbtn" data-panel="audio">Audio (coming soon)</button>
         </div>
-
         <div id="panel-text">
           <label class="lbl" for="gen-input">Paste rough notes</label>
           <textarea id="gen-input" class="textarea" rows="10" placeholder="Title: ...&#10;1) ...&#10;2) ...&#10;3) ..."></textarea>
@@ -1355,7 +711,6 @@ body::after,
           <input id="gen-title-in" class="input" placeholder="Leave empty to auto-detect" />
           <div class="err" id="errbox" style="display:none"></div>
         </div>
-
         <div id="panel-audio" style="display:none">
           <p class="muted">Recording + Whisper transcription will land here soon. For now, use the <strong>Text</strong> tab.</p>
         </div>
@@ -1367,27 +722,40 @@ body::after,
     </div>
   </div>
 
-  <!-- LOADER + TOAST -->
   <div class="overlay" id="overlay"><div class="box"><span class="spin"></span><span id="overlay-text">Generating…</span></div></div>
   <div id="toast" class="toast"></div>
-<script src="/assets/app.js"></script>
 
-// Page basics (guarded so a missing node doesn't crash the app)
-const yearEl = $("#year");
-if (yearEl) yearEl.textContent = new Date().getFullYear();
+  <!-- Your scripts: everything is INSIDE this one script tag -->
+  <script>
+    /* === Tiny helpers so everything works === */
+    const $  = (s)=>document.querySelector(s);
+    const $$ = (s)=>Array.from(document.querySelectorAll(s));
+    function makeId(){ return Math.random().toString(36).slice(2,8) + Date.now().toString(36).slice(-4); }
+    function setLoading(on, msg){
+      const ov = $("#overlay"); const t = $("#overlay-text");
+      if(!ov) return; if(on){ if(t && msg) t.textContent = msg; ov.classList.add("show"); } else { ov.classList.remove("show"); }
+    }
+    function toast(msg){
+      const el = $("#toast"); if(!el) return;
+      el.textContent = msg; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"), 2000);
+    }
 
-$("#nav-get")?.addEventListener("click", () =>
-  document.getElementById("app")?.scrollIntoView({ behavior: "smooth" })
-);
-$("#hero-try")?.addEventListener("click", () =>
-  $("#btn-open-modal")?.click()
-);
-$("#hero-learn")?.addEventListener("click", () =>
-  document.getElementById("resources")?.scrollIntoView({ behavior: "smooth" })
-);
+    /* === Page basics === */
+    const yearEl = $("#year");
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
 
+    $("#nav-get")?.addEventListener("click", () =>
+      document.getElementById("app")?.scrollIntoView({ behavior: "smooth" })
+    );
+    $("#hero-try")?.addEventListener("click", () =>
+      $("#btn-open-modal")?.click()
+    );
+    // Go to FAQ instead of #resources (since there's no #resources section)
+    $("#hero-learn")?.addEventListener("click", () =>
+      document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" })
+    );
 
-    // App shell tabs
+    /* === Tabs === */
     $$(".tabbtn").forEach(b=>{
       b.onclick = ()=>{
         $$(".tabbtn").forEach(x=>x.classList.remove("active"));
@@ -1398,7 +766,7 @@ $("#hero-learn")?.addEventListener("click", () =>
       };
     });
 
-    // Modal open/close + segments
+    /* === Modal open/close + segments === */
     const modal=$("#gen-modal");
     const openGen = ()=>{ modal.classList.add("show"); modal.setAttribute("aria-hidden","false"); $("#errbox").style.display="none"; $("#gen-input").focus(); };
     const closeGen = ()=>{ modal.classList.remove("show"); modal.setAttribute("aria-hidden","true"); };
@@ -1414,10 +782,10 @@ $("#hero-learn")?.addEventListener("click", () =>
       $("#gen-input").value = "Title: Google Ads weekly routine\n1) Review search terms and add negatives\n2) Rebalance budgets based on CPA\n3) Refresh ad copy tests\n4) Export report and email client\n5) Log changes in Notion";
     };
 
-    // Simple in-memory SOP state
+    /* === App state === */
     let sops=[]; let active=null;
 
-    // Editor rendering
+    /* === Renderers === */
     function renderEditor(){
       if(!active) return;
       const sop = sops.find(s=>s.id===active); if(!sop) return;
@@ -1426,423 +794,330 @@ $("#hero-learn")?.addEventListener("click", () =>
       const ul=$("#steps-list"); ul.innerHTML="";
       (sop.steps||[]).forEach((st,i)=>{
         const li=document.createElement("li");
-li.className = "steprow";
-
-const isObj = typeof st === "object";
-const title = isObj ? (st.title || "") : (st || "");
-const hasOwner = isObj && st.ownerRole && st.ownerRole.trim() !== "";
-const hasDur   = isObj && (st.durationMin || st.durationMin === 0);
-
-li.innerHTML =
-  '<span class="stepnum">'+(i+1)+'</span>' +
-  '<div style="display:grid;gap:6px">' +
-    '<input class="input step-title" value="'+title.replace(/"/g,'&quot;')+'"/>' +
-
-    // owner group (hidden by default unless value exists)
-    '<div class="ownergroup'+(hasOwner ? ' show' : '')+'" data-idx="'+i+'">' +
-      '<input class="input step-owner" placeholder="Owner role (optional)" value="'+(hasOwner ? st.ownerRole.replace(/"/g,'&quot;') : '')+'" style="max-width:240px" />' +
-    '</div>' +
-
-    // duration group (hidden by default unless value exists)
-    '<div class="durgroup'+(hasDur ? ' show' : '')+'" data-idx="'+i+'">' +
-      '<input class="input step-duration" type="number" min="0" placeholder="Duration (min)" value="'+(hasDur ? st.durationMin : '')+'" style="max-width:160px" />' +
-    '</div>' +
-
-    // optional long details (same behavior as your "More" toggle)
-    '<textarea class="textarea step-details" data-idx="'+i+'" placeholder="Details (optional)" style="display:'+(isObj && st.details ? 'block' : 'none')+'">'+(isObj && st.details ? st.details.replace(/</g,"&lt;") : "")+'</textarea>' +
-  '</div>' +
-
-  '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
-    '<button class="btn chipbtn'+(hasOwner?' active':'')+'" data-owner="'+i+'">Owner</button>' +
-    '<button class="btn chipbtn'+(hasDur?' active':'')+'" data-duration="'+i+'">Duration</button>' +
-    '<button class="btn" data-up="'+i+'">↑</button>' +
-    '<button class="btn" data-down="'+i+'">↓</button>' +
-    '<button class="btn" data-more="'+i+'">More</button>' +
-    '<button class="btn btn--cta" data-ai-rewrite="'+i+'">Rewrite</button>' +
-    '<button class="btn" data-rm="'+i+'">✕</button>' +
-  '</div>';
-
-
-        
+        li.className = "steprow";
+        const isObj = typeof st === "object";
+        const title = isObj ? (st.title || "") : (st || "");
+        const hasOwner = isObj && st.ownerRole && st.ownerRole.trim() !== "";
+        const hasDur   = isObj && (st.durationMin || st.durationMin === 0);
+        li.innerHTML =
+          '<span class="stepnum">'+(i+1)+'</span>' +
+          '<div style="display:grid;gap:6px">' +
+            '<input class="input step-title" value="'+title.replace(/"/g,'&quot;')+'"/>' +
+            '<div class="ownergroup'+(hasOwner ? ' show' : '')+'" data-idx="'+i+'">' +
+              '<input class="input step-owner" placeholder="Owner role (optional)" value="'+(hasOwner ? st.ownerRole.replace(/"/g,'&quot;') : '')+'" style="max-width:240px" />' +
+            '</div>' +
+            '<div class="durgroup'+(hasDur ? ' show' : '')+'" data-idx="'+i+'">' +
+              '<input class="input step-duration" type="number" min="0" placeholder="Duration (min)" value="'+(hasDur ? st.durationMin : '')+'" style="max-width:160px" />' +
+            '</div>' +
+            '<textarea class="textarea step-details" data-idx="'+i+'" placeholder="Details (optional)" style="display:'+(isObj && st.details ? 'block' : 'none')+'">'+(isObj && st.details ? st.details.replace(/</g,"&lt;") : "")+'</textarea>' +
+          '</div>' +
+          '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+            '<button class="btn chipbtn'+(hasOwner?' active':'')+'" data-owner="'+i+'">Owner</button>' +
+            '<button class="btn chipbtn'+(hasDur?' active':'')+'" data-duration="'+i+'">Duration</button>' +
+            '<button class="btn" data-up="'+i+'">↑</button>' +
+            '<button class="btn" data-down="'+i+'">↓</button>' +
+            '<button class="btn" data-more="'+i+'">More</button>' +
+            '<button class="btn btn--cta" data-ai-rewrite="'+i+'">Rewrite</button>' +
+            '<button class="btn" data-rm="'+i+'">✕</button>' +
+          '</div>';
         ul.appendChild(li);
-        
-        // Prefill details/owner/duration if present
-if (typeof st === "object") {
-  const ta = li.querySelector('.step-details');
-  if (st.details && ta) { ta.style.display = "block"; ta.value = st.details; }
-  const ownerEl = li.querySelector('.step-owner');
-  const durEl   = li.querySelector('.step-duration');
-  if (ownerEl && st.ownerRole) ownerEl.value = st.ownerRole;
-  if (durEl && (st.durationMin || st.durationMin === 0)) durEl.value = st.durationMin;
-}
-
-        // If this step already has details, show & prefill the textarea
-if (typeof st === "object" && st.details) {
-  const ta = li.querySelector('.step-details');
-  if (ta) { ta.style.display = "block"; ta.value = st.details; }
-}
+        if (typeof st === "object") {
+          const ta = li.querySelector('.step-details');
+          if (st.details && ta) { ta.style.display = "block"; ta.value = st.details; }
+          const ownerEl = li.querySelector('.step-owner');
+          const durEl   = li.querySelector('.step-duration');
+          if (ownerEl && st.ownerRole) ownerEl.value = st.ownerRole;
+          if (durEl && (st.durationMin || st.durationMin === 0)) durEl.value = st.durationMin;
+        }
+        if (typeof st === "object" && st.details) {
+          const ta = li.querySelector('.step-details');
+          if (ta) { ta.style.display = "block"; ta.value = st.details; }
+        }
       });
-      
+
       // Title edits
-ul.querySelectorAll(".step-title").forEach((inp, idx)=>{
-  inp.oninput = (e)=>{
-    const txt = e.target.value;
-    if (typeof sop.steps[idx] === "string") { sop.steps[idx] = txt; }
-    else { sop.steps[idx].title = txt; }
-    renderPreview(sop); renderJSON(sop);
-  };
-});
-    
-      // Toggle "More" (show/hide details textarea)
-ul.querySelectorAll("[data-more]").forEach(btn=>{
-  btn.onclick = ()=>{
-    const idx = parseInt(btn.getAttribute("data-more"), 10);
-    const ta = ul.querySelector('.step-details[data-idx="'+idx+'"]');
-    if (!ta) return;
-    // If details exist and step is a string, convert to object
-    const sop = sops.find(s=>s.id===active);
-    if (!sop) return;
-    if (typeof sop.steps[idx] === "string") {
-      sop.steps[idx] = { title: sop.steps[idx], details: "" };
-    }
-    // Toggle visibility
-    ta.style.display = (ta.style.display === "none" || !ta.style.display) ? "block" : "none";
-  };
-});
+      ul.querySelectorAll(".step-title").forEach((inp, idx)=>{
+        inp.oninput = (e)=>{
+          const txt = e.target.value;
+          if (typeof sop.steps[idx] === "string") { sop.steps[idx] = txt; }
+          else { sop.steps[idx].title = txt; }
+          renderPreview(sop); renderJSON(sop);
+        };
+      });
 
-// Save details as user types
-ul.querySelectorAll(".step-details").forEach(ta=>{
-  ta.oninput = (e)=>{
-    const idx = parseInt(ta.getAttribute("data-idx"), 10);
-    const sop = sops.find(s=>s.id===active);
-    if (!sop) return;
-    // Ensure object shape
-    if (typeof sop.steps[idx] === "string") {
-      sop.steps[idx] = { title: sop.steps[idx], details: "" };
-    }
-    sop.steps[idx].details = e.target.value;
-    renderPreview(sop); renderJSON(sop);
-  };
-});
+      // Toggle More
+      ul.querySelectorAll("[data-more]").forEach(btn=>{
+        btn.onclick = ()=>{
+          const idx = parseInt(btn.getAttribute("data-more"), 10);
+          const ta = ul.querySelector('.step-details[data-idx="'+idx+'"]');
+          if (!ta) return;
+          if (typeof sop.steps[idx] === "string") { sop.steps[idx] = { title: sop.steps[idx], details: "" }; }
+          ta.style.display = (ta.style.display === "none" || !ta.style.display) ? "block" : "none";
+        };
+      });
+
+      // Save details
+      ul.querySelectorAll(".step-details").forEach(ta=>{
+        ta.oninput = (e)=>{
+          const idx = parseInt(ta.getAttribute("data-idx"), 10);
+          if (typeof sop.steps[idx] === "string") sop.steps[idx] = { title: sop.steps[idx], details: "" };
+          sop.steps[idx].details = e.target.value;
+          renderPreview(sop); renderJSON(sop);
+        };
+      });
+
       // Remove
-ul.querySelectorAll("[data-rm]").forEach(btn=>{
-  btn.onclick = ()=>{
-    const idx = parseInt(btn.dataset.rm, 10);
-    sop.steps.splice(idx, 1);
-    renderEditor(); renderPreview(sop); renderJSON(sop);
-  };
-});
+      ul.querySelectorAll("[data-rm]").forEach(btn=>{
+        btn.onclick = ()=>{
+          const idx = parseInt(btn.dataset.rm, 10);
+          sop.steps.splice(idx, 1);
+          renderEditor(); renderPreview(sop); renderJSON(sop);
+        };
+      });
 
-// Move up
-ul.querySelectorAll("[data-up]").forEach(btn=>{
-  btn.onclick = ()=>{
-    const idx = parseInt(btn.dataset.up, 10);
-    if (idx <= 0) return;
-    [sop.steps[idx-1], sop.steps[idx]] = [sop.steps[idx], sop.steps[idx-1]];
-    renderEditor(); renderPreview(sop); renderJSON(sop);
-  };
-});
+      // Move up
+      ul.querySelectorAll("[data-up]").forEach(btn=>{
+        btn.onclick = ()=>{
+          const idx = parseInt(btn.dataset.up, 10);
+          if (idx <= 0) return;
+          [sop.steps[idx-1], sop.steps[idx]] = [sop.steps[idx], sop.steps[idx-1]];
+          renderEditor(); renderPreview(sop); renderJSON(sop);
+        };
+      });
 
-// Move down
-ul.querySelectorAll("[data-down]").forEach(btn=>{
-  btn.onclick = ()=>{
-    const idx = parseInt(btn.dataset.down, 10);
-    if (idx >= sop.steps.length - 1) return;
-    [sop.steps[idx], sop.steps[idx+1]] = [sop.steps[idx+1], sop.steps[idx]];
-    renderEditor(); renderPreview(sop); renderJSON(sop);
-  };
-});
+      // Move down
+      ul.querySelectorAll("[data-down]").forEach(btn=>{
+        btn.onclick = ()=>{
+          const idx = parseInt(btn.dataset.down, 10);
+          if (idx >= sop.steps.length - 1) return;
+          [sop.steps[idx], sop.steps[idx+1]] = [sop.steps[idx+1], sop.steps[idx]];
+          renderEditor(); renderPreview(sop); renderJSON(sop);
+        };
+      });
 
-// Toggle Owner input
-ul.querySelectorAll("[data-owner]").forEach(btn=>{
-  btn.onclick = ()=>{
-    const idx = parseInt(btn.getAttribute("data-owner"),10);
-    const group = ul.querySelector('.ownergroup[data-idx="'+idx+'"]');
-    if(!group) return;
+      // Toggle Owner
+      ul.querySelectorAll("[data-owner]").forEach(btn=>{
+        btn.onclick = ()=>{
+          const idx = parseInt(btn.getAttribute("data-owner"),10);
+          const group = ul.querySelector('.ownergroup[data-idx="'+idx+'"]');
+          if(!group) return;
+          if (typeof sop.steps[idx] === "string") sop.steps[idx] = { title: sop.steps[idx], details:"", ownerRole:"" };
+          const showing = group.classList.toggle("show");
+          btn.classList.toggle("active", showing);
+          if (!showing) {
+            sop.steps[idx].ownerRole = "";
+            const input = group.querySelector('.step-owner'); if (input) input.value = "";
+          }
+          renderPreview(sop); renderJSON(sop);
+        };
+      });
 
-    // ensure object shape
-    if (typeof sop.steps[idx] === "string") {
-      sop.steps[idx] = { title: sop.steps[idx], details:"", ownerRole:"" };
-    }
+      // Save Owner
+      ul.querySelectorAll(".step-owner").forEach(inp=>{
+        inp.oninput = (e)=>{
+          const idx = parseInt(inp.closest(".ownergroup").getAttribute("data-idx"),10);
+          if (typeof sop.steps[idx] === "string") sop.steps[idx] = { title: sop.steps[idx], details:"", ownerRole:"" };
+          sop.steps[idx].ownerRole = e.target.value;
+          renderPreview(sop); renderJSON(sop);
+        };
+      });
 
-    const showing = group.classList.toggle("show");
-    btn.classList.toggle("active", showing);
+      // Toggle Duration
+      ul.querySelectorAll("[data-duration]").forEach(btn=>{
+        btn.onclick = ()=>{
+          const idx = parseInt(btn.getAttribute("data-duration"),10);
+          const group = ul.querySelector('.durgroup[data-idx="'+idx+'"]');
+          if(!group) return;
+          if (typeof sop.steps[idx] === "string") sop.steps[idx] = { title: sop.steps[idx], details:"", durationMin:null };
+          const showing = group.classList.toggle("show");
+          btn.classList.toggle("active", showing);
+          if (!showing) {
+            sop.steps[idx].durationMin = null;
+            const input = group.querySelector('.step-duration'); if (input) input.value = "";
+          }
+          renderPreview(sop); renderJSON(sop);
+        };
+      });
 
-    if (!showing) {
-      sop.steps[idx].ownerRole = "";
-      const input = group.querySelector('.step-owner');
-      if (input) input.value = "";
-    }
-    renderPreview(sop); renderJSON(sop);
-  };
-});
-
-// Save Owner as user types
-ul.querySelectorAll(".step-owner").forEach(inp=>{
-  inp.oninput = (e)=>{
-    const idx = parseInt(inp.closest(".ownergroup").getAttribute("data-idx"),10);
-    if (typeof sop.steps[idx] === "string") { sop.steps[idx] = { title: sop.steps[idx], details:"", ownerRole:"" }; }
-    sop.steps[idx].ownerRole = e.target.value;
-    renderPreview(sop); renderJSON(sop);
-  };
-});
-
-// Toggle Duration input
-ul.querySelectorAll("[data-duration]").forEach(btn=>{
-  btn.onclick = ()=>{
-    const idx = parseInt(btn.getAttribute("data-duration"),10);
-    const group = ul.querySelector('.durgroup[data-idx="'+idx+'"]');
-    if(!group) return;
-
-    if (typeof sop.steps[idx] === "string") {
-      sop.steps[idx] = { title: sop.steps[idx], details:"", durationMin:null };
-    }
-
-    const showing = group.classList.toggle("show");
-    btn.classList.toggle("active", showing);
-
-    if (!showing) {
-      sop.steps[idx].durationMin = null;
-      const input = group.querySelector('.step-duration');
-      if (input) input.value = "";
-    }
-    renderPreview(sop); renderJSON(sop);
-  };
-});
-
-// Save Duration as user types
-ul.querySelectorAll(".step-duration").forEach(inp=>{
-  inp.oninput = (e)=>{
-    const idx = parseInt(inp.closest(".durgroup").getAttribute("data-idx"),10);
-    const val = e.target.value === "" ? null : Math.max(0, parseInt(e.target.value,10) || 0);
-    if (typeof sop.steps[idx] === "string") { sop.steps[idx] = { title: sop.steps[idx], details:"", durationMin:null }; }
-    sop.steps[idx].durationMin = val;
-    renderPreview(sop); renderJSON(sop);
-  };
-});
+      // Save Duration
+      ul.querySelectorAll(".step-duration").forEach(inp=>{
+        inp.oninput = (e)=>{
+          const idx = parseInt(inp.closest(".durgroup").getAttribute("data-idx"),10);
+          const val = e.target.value === "" ? null : Math.max(0, parseInt(e.target.value,10) || 0);
+          if (typeof sop.steps[idx] === "string") sop.steps[idx] = { title: sop.steps[idx], details:"", durationMin:null };
+          sop.steps[idx].durationMin = val;
+          renderPreview(sop); renderJSON(sop);
+        };
+      });
 
       // AI Rewrite (single step)
-ul.querySelectorAll("[data-ai-rewrite]").forEach(btn=>{
-  btn.onclick = async ()=>{
-    const idx = parseInt(btn.getAttribute("data-ai-rewrite"),10);
-    const sop = sops.find(s=>s.id===active);
-    if(!sop) return;
-
-    const cur = sop.steps[idx];
-    const text = (typeof cur === "string") ? cur : (cur.title || "");
-    if(!text.trim()){ toast("Step is empty"); return; }
-
-    setLoading(true, "Rewriting step…");
-    try{
-      const res = await fetch('/.netlify/functions/rewriteStep', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({
-          step: text,
-          sopTitle:  sop.title   || "",
-          sopSummary:sop.summary || ""
-        })
-      });
-      const data = await res.json().catch(()=>({error:"Invalid response"}));
-      if(!res.ok) throw new Error(data?.error || ("HTTP "+res.status));
-
-      const r = data.step || {};
-      // normalize into your step shape
-      sop.steps[idx] = (typeof r === 'object')
-        ? {
-            title:       r.title || text,
-            details:     r.details || "",
-            ownerRole:   r.ownerRole || "",
-            durationMin: (r.durationMin ?? null)
+      ul.querySelectorAll("[data-ai-rewrite]").forEach(btn=>{
+        btn.onclick = async ()=>{
+          const idx = parseInt(btn.getAttribute("data-ai-rewrite"),10);
+          const sop = sops.find(s=>s.id===active);
+          if(!sop) return;
+          const cur = sop.steps[idx];
+          const text = (typeof cur === "string") ? cur : (cur.title || "");
+          if(!text.trim()){ toast("Step is empty"); return; }
+          setLoading(true, "Rewriting step…");
+          try{
+            const res = await fetch('/.netlify/functions/rewriteStep', {
+              method: 'POST',
+              headers: { 'Content-Type':'application/json' },
+              body: JSON.stringify({
+                step: text,
+                sopTitle:  sop.title   || "",
+                sopSummary:sop.summary || ""
+              })
+            });
+            const data = await res.json().catch(()=>({error:"Invalid response"}));
+            if(!res.ok) throw new Error(data?.error || ("HTTP "+res.status));
+            const r = data.step || {};
+            sop.steps[idx] = (typeof r === 'object')
+              ? { title:r.title || text, details:r.details || "", ownerRole:r.ownerRole || "", durationMin:(r.durationMin ?? null) }
+              : (r || text);
+            renderEditor(); renderPreview(sop); renderJSON(sop);
+            toast("Step rewritten");
+          }catch(e){
+            console.error(e);
+            toast("Rewrite failed: " + e.message);
+            const err = document.getElementById('errbox');
+            if(err){ err.style.display='block'; err.textContent='Rewrite error: '+e.message; }
+          }finally{
+            setLoading(false);
           }
-        : (r || text);
-
-      renderEditor(); renderPreview(sop); renderJSON(sop);
-      toast("Step rewritten");
-    }catch(e){
-      console.error(e);
-      toast("Rewrite failed: " + e.message);
-      const err = document.getElementById('errbox');
-      if(err){ err.style.display='block'; err.textContent='Rewrite error: '+e.message; }
-    }finally{
-      setLoading(false);
-    }
-  };
-});
-
-
-      // Add Step
-const addBtn = document.getElementById('btn-add-step');
-if (addBtn){
-  addBtn.onclick = ()=>{
-    sop.steps = sop.steps || [];
-    sop.steps.push({ title: 'New step' });
-    renderEditor(); renderPreview(sop); renderJSON(sop);
-    const last = document.querySelector('#steps-list .steprow:last-child');
-    if (last) last.scrollIntoView({ behavior:'smooth', block:'center' });
-  };
-}
+        };
+      });
 
       $("#sop-title").oninput = e=>{ sop.title=e.target.value; renderPreview(sop); renderJSON(sop); };
       $("#sop-summary").oninput = e=>{ sop.summary=e.target.value; renderPreview(sop); renderJSON(sop); };
       renderPreview(sop); renderJSON(sop);
     }
+
     function renderPreview(sop){
       const steps=(sop.steps||[]).map((st,i)=>{
-  const t = typeof st==="string"? st : (st.title||"");
-  const owner = (typeof st === "object" && st.ownerRole) ? st.ownerRole : "";
-  const dur   = (typeof st === "object" && (st.durationMin || st.durationMin === 0)) ? st.durationMin : "";
-  const details = (typeof st === "object" && st.details) ? st.details : "";
-  const meta = [owner ? `Owner: ${owner}` : '', (dur!=='' ? `Duration: ${dur} min` : '')].filter(Boolean).join(' · ');
-  return '<div style="border:1px dashed #ffd9b7;background:#fff;border-radius:12px;padding:10px;margin-bottom:8px">'
-    + '<strong>Step '+(i+1)+':</strong> '+t
-    + (meta ? '<div class="muted" style="font-size:12px;margin-top:4px">'+meta+'</div>' : '')
-    + (details ? '<div style="margin-top:6px">'+details.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>' : '')
-    + '</div>';
-}).join("");
+        const t = typeof st==="string"? st : (st.title||"");
+        const owner = (typeof st === "object" && st.ownerRole) ? st.ownerRole : "";
+        const dur   = (typeof st === "object" && (st.durationMin || st.durationMin === 0)) ? st.durationMin : "";
+        const details = (typeof st === "object" && st.details) ? st.details : "";
+        const meta = [owner ? `Owner: ${owner}` : '', (dur!=='' ? `Duration: ${dur} min` : '')].filter(Boolean).join(' · ');
+        return '<div style="border:1px dashed #ffd9b7;background:#fff;border-radius:12px;padding:10px;margin-bottom:8px">'
+          + '<strong>Step '+(i+1)+':</strong> '+t
+          + (meta ? '<div class="muted" style="font-size:12px;margin-top:4px">'+meta+'</div>' : '')
+          + (details ? '<div style="margin-top:6px">'+details.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>' : '')
+          + '</div>';
+      }).join("");
       $("#preview").innerHTML = '<h4 style="margin:0 0 6px">'+(sop.title||"Untitled SOP")+'</h4>'
         + '<p class="muted" style="margin:0 0 10px">'+(sop.summary||"")+'</p>'+steps;
     }
+
     function renderJSON(sop){ $("#jsonbox").textContent = JSON.stringify(sop, null, 2); }
+
     function renderVersions(){
-  if(!active) return;
-  const sop  = sops.find(s=>s.id===active);
-  const list = $("#versions-list");
-  if(!list) return;
-  list.innerHTML = "";
-
-  const versions = Array.isArray(sop?.versions) ? sop.versions : [];
-  if(versions.length === 0){
-    list.innerHTML = '<div class="card"><strong>No versions yet.</strong><p class="muted">Click "Save Version" in the top bar to snapshot this SOP.</p></div>';
-    return;
-  }
-
-  versions.slice().reverse().forEach(v=>{
-    const safeNotes = v.notes && String(v.notes).trim()
-      ? String(v.notes).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      : '';
-    const el = document.createElement("div");
-    el.className = "card";
-    el.innerHTML =
-      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
-        '<div><strong>v'+v.n+'</strong> · '+ new Date(v.at).toLocaleString() +'</div>' +
-        '<div style="display:flex;align-items:center;gap:10px">' +
-          '<span class="muted" style="font-size:12px">'+(v.title||"")+'</span>' +
-          '<button class="btn" data-restore="'+v.n+'">Restore</button>' +
-        '</div>' +
-      '</div>' +
-      (safeNotes ? '<div class="muted" style="font-size:12px;margin-top:6px">Notes: '+ safeNotes +'</div>' : '');
-    list.appendChild(el);
-  });
-}
-<script>
-    // Download PDF (C4-c)
-document.getElementById('btn-download-pdf').onclick = () => {
-  try {
-    const sop = sops.find(s=>s.id===active);
-    if(!sop){ toast('No SOP open'); return; }
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-
-    const margin = 56;
-    let y = margin;
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-
-    const wrap = (text, width) => doc.splitTextToSize(text || '', width);
-    const line = (txt, opts={}) => {
-      const lines = wrap(txt, pageW - margin*2);
-      lines.forEach(l=>{
-        if (y > pageH - margin) { doc.addPage(); y = margin; }
-        doc.text(l, margin, y, opts);
-        y += 16;
+      if(!active) return;
+      const sop  = sops.find(s=>s.id===active);
+      const list = $("#versions-list");
+      if(!list) return;
+      list.innerHTML = "";
+      const versions = Array.isArray(sop?.versions) ? sop.versions : [];
+      if(versions.length === 0){
+        list.innerHTML = '<div class="card"><strong>No versions yet.</strong><p class="muted">Click "Save Version" in the top bar to snapshot this SOP.</p></div>';
+        return;
+      }
+      versions.slice().reverse().forEach(v=>{
+        const safeNotes = v.notes && String(v.notes).trim()
+          ? String(v.notes).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          : '';
+        const el = document.createElement("div");
+        el.className = "card";
+        el.innerHTML =
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
+            '<div><strong>v'+v.n+'</strong> · '+ new Date(v.at).toLocaleString() +'</div>' +
+            '<div style="display:flex;align-items:center;gap:10px">' +
+              '<span class="muted" style="font-size:12px">'+(v.title||"")+'</span>' +
+              '<button class="btn" data-restore="'+v.n+'">Restore</button>' +
+            '</div>' +
+          '</div>' +
+          (safeNotes ? '<div class="muted" style="font-size:12px;margin-top:6px">Notes: '+ safeNotes +'</div>' : '');
+        list.appendChild(el);
       });
+    }
+
+    /* === PDF download === */
+    document.getElementById('btn-download-pdf').onclick = () => {
+      try {
+        const sop = sops.find(s=>s.id===active);
+        if(!sop){ toast('No SOP open'); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+        const margin = 56; let y = margin;
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const wrap = (text, width) => doc.splitTextToSize(text || '', width);
+        const line = (txt, opts={}) => {
+          const lines = wrap(txt, pageW - margin*2);
+          lines.forEach(l=>{
+            if (y > pageH - margin) { doc.addPage(); y = margin; }
+            doc.text(l, margin, y, opts);
+            y += 16;
+          });
+        };
+        doc.setFillColor(255,122,26);
+        doc.rect(0,0,pageW,36,'F');
+        doc.setTextColor(255,255,255);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(14);
+        doc.text('UltraSOP', margin, 24);
+        y = 72;
+        doc.setTextColor(17,24,39);
+        doc.setFontSize(20);
+        doc.setFont('helvetica','bold');
+        line(sop.title || 'Untitled SOP');
+        if (sop.summary) {
+          y += 6; doc.setFont('helvetica','normal'); doc.setFontSize(12); doc.setTextColor(55,65,81);
+          line(sop.summary); y += 6;
+        }
+        doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(17,24,39);
+        line('Steps'); doc.setFont('helvetica','normal'); doc.setFontSize(12);
+        const steps = Array.isArray(sop.steps) ? sop.steps : [];
+        steps.forEach((st,i)=>{
+          const sObj = (st && typeof st === 'object') ? st : { title: st };
+          const title = String(sObj.title || '');
+          y += 4;
+          doc.setFont('helvetica','bold'); line(`Step ${i+1}: ${title}`);
+          doc.setFont('helvetica','normal');
+          const details = typeof sObj.details === 'string' ? sObj.details : '';
+          if (details) line(details);
+          const checklist = Array.isArray(sObj.checklist) ? sObj.checklist.map(c=>String(c)) : [];
+          if (checklist.length) { line('Checklist:'); checklist.forEach(item => line(`• ${item}`)); }
+          const prereq = Array.isArray(sObj.prerequisites) ? sObj.prerequisites.map(p=>String(p)) : [];
+          if (prereq.length) { line('Prerequisites:'); prereq.forEach(item => line(`• ${item}`)); }
+          const duration = typeof sObj.durationMin === 'number' ? sObj.durationMin : null;
+          const owner = typeof sObj.ownerRole === 'string' && sObj.ownerRole.trim() ? sObj.ownerRole : null;
+          const risk = typeof sObj.riskNotes === 'string' && sObj.riskNotes.trim() ? sObj.riskNotes : null;
+          const meta = [owner ? `Owner: ${owner}` : '', duration!=null ? `Duration: ${duration} min` : ''].filter(Boolean).join('  ');
+          if (meta) line(meta);
+          if (risk) line(`Risks: ${risk}`);
+          y += 4;
+        });
+        const pages = doc.getNumberOfPages();
+        for (let p = 1; p <= pages; p++) {
+          doc.setPage(p);
+          const h = doc.internal.pageSize.getHeight();
+          doc.setFontSize(10); doc.setTextColor(107,114,128);
+          doc.text(`Generated by UltraSOP — ${new Date().toLocaleString()}`, margin, h - 24);
+          doc.text(`${p} / ${pages}`, pageW - margin, h - 24, { align: 'right' });
+        }
+        const fileName = (sop.title || 'UltraSOP').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() + '.pdf';
+        doc.save(fileName);
+        toast('PDF downloaded');
+      } catch (e) {
+        console.error(e);
+        toast('PDF export failed');
+      }
     };
 
-    // Header bar
-    doc.setFillColor(255,122,26);
-    doc.rect(0,0,pageW,36,'F');
-    doc.setTextColor(255,255,255);
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(14);
-    doc.text('UltraSOP', margin, 24);
-
-    // Title
-    y = 72;
-    doc.setTextColor(17,24,39);
-    doc.setFontSize(20);
-    doc.setFont('helvetica','bold');
-    line(sop.title || 'Untitled SOP');
-
-    // Summary
-    if (sop.summary) {
-      y += 6;
-      doc.setFont('helvetica','normal');
-      doc.setFontSize(12);
-      doc.setTextColor(55,65,81);
-      line(sop.summary);
-      y += 6;
-    }
-
-    // Steps
-    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(17,24,39);
-    line('Steps');
-    doc.setFont('helvetica','normal'); doc.setFontSize(12);
-    const steps = Array.isArray(sop.steps) ? sop.steps : [];
-    steps.forEach((st,i)=>{
-      const sObj = (st && typeof st === 'object') ? st : { title: st };
-      const title = String(sObj.title || '');
-      y += 4;
-      doc.setFont('helvetica','bold'); line(`Step ${i+1}: ${title}`);
-      doc.setFont('helvetica','normal');
-
-      const details = typeof sObj.details === 'string' ? sObj.details : '';
-      if (details) line(details);
-
-      const checklist = Array.isArray(sObj.checklist) ? sObj.checklist.map(c=>String(c)) : [];
-      if (checklist.length) {
-        line('Checklist:');
-        checklist.forEach(item => line(`• ${item}`));
-      }
-
-      const prereq = Array.isArray(sObj.prerequisites) ? sObj.prerequisites.map(p=>String(p)) : [];
-      if (prereq.length) {
-        line('Prerequisites:');
-        prereq.forEach(item => line(`• ${item}`));
-      }
-
-      const duration = typeof sObj.durationMin === 'number' ? sObj.durationMin : null;
-      const owner = typeof sObj.ownerRole === 'string' && sObj.ownerRole.trim() ? sObj.ownerRole : null;
-      const risk = typeof sObj.riskNotes === 'string' && sObj.riskNotes.trim() ? sObj.riskNotes : null;
-
-      const meta = [owner ? `Owner: ${owner}` : '', duration!=null ? `Duration: ${duration} min` : ''].filter(Boolean).join('  ');
-      if (meta) line(meta);
-      if (risk) line(`Risks: ${risk}`);
-
-      y += 4;
-    });
-
-    // Footer with page numbers
-    const pages = doc.getNumberOfPages();
-    for (let p = 1; p <= pages; p++) {
-      doc.setPage(p);
-      const h = doc.internal.pageSize.getHeight();
-      doc.setFontSize(10); doc.setTextColor(107,114,128);
-      doc.text(`Generated by UltraSOP — ${new Date().toLocaleString()}`, margin, h - 24);
-      doc.text(`${p} / ${pages}`, pageW - margin, h - 24, { align: 'right' });
-    }
-
-    const fileName = (sop.title || 'UltraSOP').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() + '.pdf';
-    doc.save(fileName);
-    toast('PDF downloaded');
-  } catch (e) {
-    console.error(e);
-    toast('PDF export failed');
-  }
-};
-
-    // Generate via Netlify Function
+    /* === Generate via Netlify Function === */
     async function callGenerateAPI(raw, overrideTitle){
       const res = await fetch('/.netlify/functions/generateSop', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -1871,484 +1146,270 @@ document.getElementById('btn-download-pdf').onclick = () => {
       }
     };
 
-    
-// Save Version (C3-a + notes)
-document.getElementById('btn-save').onclick = ()=>{
-  if(!active){ toast("Open a SOP first"); return; }
-  const sop = sops.find(s=>s.id===active);
-  if(!sop){ toast("No SOP found"); return; }
+    // Save Version
+    document.getElementById('btn-save').onclick = ()=>{
+      if(!active){ toast("Open a SOP first"); return; }
+      const sop = sops.find(s=>s.id===active);
+      if(!sop){ toast("No SOP found"); return; }
+      sop.versions = Array.isArray(sop.versions) ? sop.versions : [];
+      const nextN = sop.versions.length ? sop.versions[sop.versions.length-1].n + 1 : 1;
+      const notes = window.prompt('Version notes (optional):', '') || '';
+      sop.versions.push({ n:nextN, at:new Date().toISOString(), title:sop.title||"Untitled", summary:sop.summary||"", notes:notes.trim(),
+        steps:(sop.steps||[]).map(st => (typeof st==="string" ? st : (st.title||""))) });
+      toast("Saved v"+nextN);
+      renderVersions();
+    };
 
-  sop.versions = Array.isArray(sop.versions) ? sop.versions : [];
-  const nextN = sop.versions.length ? sop.versions[sop.versions.length-1].n + 1 : 1;
-  const notes = window.prompt('Version notes (optional):', '') || '';
+    // Duplicate
+    document.getElementById('btn-dup').onclick = ()=>{
+      if(!active){ toast('Open a SOP first'); return; }
+      const src = sops.find(s=>s.id===active);
+      if(!src){ toast('No SOP found'); return; }
+      const copy = JSON.parse(JSON.stringify(src));
+      copy.id = makeId(); copy.title = 'Copy of ' + (src.title || 'Untitled SOP'); copy.versions = [];
+      sops.unshift(copy); active = copy.id;
+      renderEditor(); renderVersions(); toast('Duplicated');
+    };
 
-  sop.versions.push({
-    n: nextN,
-    at: new Date().toISOString(),
-    title: sop.title || "Untitled",
-    summary: sop.summary || "",
-    notes: notes.trim(),
-    steps: (sop.steps||[]).map(st => (typeof st==="string" ? st : (st.title||"")))
-  });
-
-  toast("Saved v"+nextN);
-  renderVersions();
-};
-    // Duplicate SOP (C8-a)
-document.getElementById('btn-dup').onclick = ()=>{
-  if(!active){ toast('Open a SOP first'); return; }
-  const src = sops.find(s=>s.id===active);
-  if(!src){ toast('No SOP found'); return; }
-
-  // Deep copy, new id, fresh versions
-  const copy = JSON.parse(JSON.stringify(src));
-  copy.id = makeId();
-  copy.title = 'Copy of ' + (src.title || 'Untitled SOP');
-  copy.versions = [];
-
-  sops.unshift(copy);
-  active = copy.id;
-
-  renderEditor();      // opens the clone in the editor
-  renderVersions();    // shows empty version list for the clone
-  toast('Duplicated');
-};
-</script>
-    <script>
-// --- Enhance all steps (single clean handler with spinner + silent retry)
-(function(){
-  const btn = document.getElementById('btn-rewrite-all');
-  if (!btn) return;
-
-  const spinner = document.getElementById('enhance-status');
-  const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
-
-  // fetch with up to N retries for 502/504/429 + JSON-safe result
-  async function fetchJSON(url, opts, retries=2){
-    for (let a=0; a<=retries; a++){
-      try{
-        const res = await fetch(url, opts);
-        if (res.ok){
-          let data=null; try{ data = await res.json(); }catch{}
-          return { ok:true, data };
-        }
-        // transient? retry
-        if (a < retries && (res.status===502 || res.status===504 || res.status===429)){
-          await sleep(600*(a+1)); continue;
-        }
-        let msg=""; try{ msg = (await res.json())?.error || ""; }catch{}
-        return { ok:false, error: msg || `HTTP ${res.status}` };
-      }catch(err){
-        if (a < retries){ await sleep(600*(a+1)); continue; }
-        return { ok:false, error: err.message || 'Network error' };
-      }
-    }
-  }
-
-  btn.addEventListener('click', async ()=>{
-    if (!window.active){ toast('Open a SOP first'); return; }
-    const sop = (window.sops || []).find(s=>s.id===window.active);
-    if (!sop || !Array.isArray(sop.steps) || sop.steps.length===0){
-      toast('No steps to enhance'); return;
-    }
-
-    // UI on
-    setLoading(true, 'Enhancing steps…');
-    if (spinner) spinner.style.display = 'flex';
-
-    try{
-      // Try batch endpoint first
-      const batch = await fetchJSON('/.netlify/functions/rewriteAll', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          steps: sop.steps,
-          sopTitle:  sop.title   || '',
-          sopSummary:sop.summary || ''
-        })
-      }, 1);
-
-      let newSteps = null;
-
-      if (batch.ok && Array.isArray(batch.data?.steps)) {
-        newSteps = batch.data.steps;
-      } else {
-        // Fallback: sequential per-step (keeps UI responsive & avoids 502 bursts)
-        const out = [];
-        for (let i=0; i<sop.steps.length; i++){
-          const cur   = sop.steps[i];
-          const title = (typeof cur==='string' ? cur : (cur?.title||'')).trim();
-          if (!title){ out.push(cur); continue; }
-
-          const r = await fetchJSON('/.netlify/functions/rewriteStep', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-              step: title,
-              sopTitle:  sop.title   || '',
-              sopSummary:sop.summary || ''
-            })
-          }, 2);
-
-          if (r.ok && r.data?.step){
-            const s = r.data.step;
-            out.push(typeof s==='object' ? {
-              title:       s.title || title,
-              details:     s.details || '',
-              ownerRole:   s.ownerRole || '',
-              durationMin: (s.durationMin ?? null)
-            } : (s || title));
-          } else {
-            // keep original on failure (no error flash)
-            out.push(cur);
+    // Enhance all steps
+    (function(){
+      const btn = document.getElementById('btn-rewrite-all');
+      if (!btn) return;
+      const spinner = document.getElementById('enhance-status');
+      const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
+      async function fetchJSON(url, opts, retries=2){
+        for (let a=0; a<=retries; a++){
+          try{
+            const res = await fetch(url, opts);
+            if (res.ok){ let data=null; try{ data = await res.json(); }catch{} return { ok:true, data }; }
+            if (a < retries && (res.status===502 || res.status===504 || res.status===429)){ await sleep(600*(a+1)); continue; }
+            let msg=""; try{ msg = (await res.json())?.error || ""; }catch{} return { ok:false, error: msg || `HTTP ${res.status}` };
+          }catch(err){
+            if (a < retries){ await sleep(600*(a+1)); continue; }
+            return { ok:false, error: err.message || 'Network error' };
           }
-          await sleep(250);
         }
-        newSteps = out;
       }
+      btn.addEventListener('click', async ()=>{
+        if (!window.active){ toast('Open a SOP first'); return; }
+        const sop = (window.sops || []).find(s=>s.id===window.active);
+        if (!sop || !Array.isArray(sop.steps) || sop.steps.length===0){ toast('No steps to enhance'); return; }
+        setLoading(true, 'Enhancing steps…'); if (spinner) spinner.style.display = 'flex';
+        try{
+          const batch = await fetchJSON('/.netlify/functions/rewriteAll', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ steps: sop.steps, sopTitle:  sop.title||'', sopSummary:sop.summary||'' })
+          }, 1);
+          let newSteps = null;
+          if (batch.ok && Array.isArray(batch.data?.steps)) {
+            newSteps = batch.data.steps;
+          } else {
+            const out = [];
+            for (let i=0; i<sop.steps.length; i++){
+              const cur = sop.steps[i];
+              const title = (typeof cur==='string' ? cur : (cur?.title||'')).trim();
+              if (!title){ out.push(cur); continue; }
+              const r = await fetchJSON('/.netlify/functions/rewriteStep', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ step:title, sopTitle:sop.title||'', sopSummary:sop.summary||'' })
+              }, 2);
+              if (r.ok && r.data?.step){
+                const s = r.data.step;
+                out.push(typeof s==='object' ? {
+                  title:(s.title || title), details:(s.details || ''), ownerRole:(s.ownerRole || ''), durationMin:(s.durationMin ?? null)
+                } : (s || title));
+              } else { out.push(cur); }
+              await sleep(250);
+            }
+            newSteps = out;
+          }
+          if (!newSteps || !Array.isArray(newSteps)) throw new Error(batch.error || 'No steps returned');
+          sop.steps = newSteps;
+          renderEditor(); renderPreview(sop); renderJSON(sop);
+          toast('Steps enhanced');
+        } catch(err){
+          console.error(err); toast('Enhance failed: ' + (err.message || 'Unknown error'));
+        } finally {
+          setLoading(false); if (spinner) spinner.style.display = 'none';
+        }
+      });
+    })();
 
-      if (!newSteps || !Array.isArray(newSteps)) throw new Error(batch.error || 'No steps returned');
+    // Template library
+    const TEMPLATE_LIBRARY = {
+      onboarding: { title:"New Employee Onboarding", summary:"Welcome, access, IT/security, buddy assignment, and first-week goals.", steps:[
+        "Send welcome email with start date and checklist","Provision accounts (email, SSO, tools)","IT & security setup (2FA, password manager)","Assign buddy and schedule intro call","Share first-week goals and resources" ] },
+      agency_client_onboarding:{ title:"Client Onboarding (Agency)", summary:"Kickoff, asset collection, tracking, approvals, weekly cadence.", steps:[
+        "Schedule kickoff and confirm stakeholders","Collect brand assets and credentials","Implement analytics & conversion tracking","Define deliverables and approval workflow","Set standing weekly cadence and reporting" ] },
+      minor_outage:{ title:"Minor Website Outage", summary:"Triage, communicate, rollback if needed, verify, and log.", steps:[
+        "Acknowledge incident and create ticket","Triage scope and impact (pages, users, regions)","Roll back recent changes if correlated","Verify recovery and monitor metrics","Post-incident notes and follow-ups" ] },
+      google_ads_weekly:{ title:"Google Ads Weekly Routine", summary:"Search terms, negatives, budgets, tests, reporting, and logging.", steps:[
+        "Review search terms and add negatives","Rebalance budgets by CPA/ROAS","Refresh ad copy and RSAs tests","Export performance report and email stakeholder","Log changes and next actions" ] },
+      bug_triage:{ title:"Bug Triage & Handoff", summary:"Repro, severity, labeling, assignment, ETA, and customer update.", steps:[
+        "Reproduce issue with clear steps","Assign severity & labels","Attach logs / screenshots","Assign owner and ETA","Update customer and link ticket" ] },
+      sales_discovery:{ title:"Sales Discovery Call", summary:"Prep agenda, qualify needs, next steps, and CRM update.", steps:[
+        "Prep agenda & research account","Run discovery and qualify","Identify stakeholders & timeline","Agree on next steps","Update CRM and share recap" ] }
+    };
 
-      // Apply + render
-      sop.steps = newSteps;
-      renderEditor(); renderPreview(sop); renderJSON(sop);
-      toast('Steps enhanced');
-    } catch(err){
-      console.error(err);
-      toast('Enhance failed: ' + (err.message || 'Unknown error'));
-    } finally {
-      // UI off
-      setLoading(false);
-      if (spinner) spinner.style.display = 'none';
+    function renderQuickTemplates(){
+      const list = document.getElementById('qtpl-list');
+      if(!list || typeof TEMPLATE_LIBRARY !== 'object') return;
+      const picks = ['onboarding','agency_client_onboarding','minor_outage','google_ads_weekly'].filter(k => TEMPLATE_LIBRARY[k]);
+      list.innerHTML = picks.map(k => `<button class="qtpl-btn" data-template="${k}">${TEMPLATE_LIBRARY[k].title}</button>`).join('');
     }
-  });
-})();
-</script>
-<script>
-    // Templates library (UI-A5)
-const TEMPLATE_LIBRARY = {
-  onboarding: {
-    title: "New Employee Onboarding",
-    summary: "Welcome, access, IT/security, buddy assignment, and first-week goals.",
-    steps: [
-      "Send welcome email with start date and checklist",
-      "Provision accounts (email, SSO, tools)",
-      "IT & security setup (2FA, password manager)",
-      "Assign buddy and schedule intro call",
-      "Share first-week goals and resources"
-    ]
-  },
-  agency_client_onboarding: {
-    title: "Client Onboarding (Agency)",
-    summary: "Kickoff, asset collection, tracking, approvals, weekly cadence.",
-    steps: [
-      "Schedule kickoff and confirm stakeholders",
-      "Collect brand assets and credentials",
-      "Implement analytics & conversion tracking",
-      "Define deliverables and approval workflow",
-      "Set standing weekly cadence and reporting"
-    ]
-  },
-  minor_outage: {
-    title: "Minor Website Outage",
-    summary: "Triage, communicate, rollback if needed, verify, and log.",
-    steps: [
-      "Acknowledge incident and create ticket",
-      "Triage scope and impact (pages, users, regions)",
-      "Roll back recent changes if correlated",
-      "Verify recovery and monitor metrics",
-      "Post-incident notes and follow-ups"
-    ]
-  },
-  google_ads_weekly: {
-    title: "Google Ads Weekly Routine",
-    summary: "Search terms, negatives, budgets, tests, reporting, and logging.",
-    steps: [
-      "Review search terms and add negatives",
-      "Rebalance budgets by CPA/ROAS",
-      "Refresh ad copy and RSAs tests",
-      "Export performance report and email stakeholder",
-      "Log changes and next actions"
-    ]
-  },
-  bug_triage: {
-    title: "Bug Triage & Handoff",
-    summary: "Repro, severity, labeling, assignment, ETA, and customer update.",
-    steps: [
-      "Reproduce issue with clear steps",
-      "Assign severity & labels",
-      "Attach logs / screenshots",
-      "Assign owner and ETA",
-      "Update customer and link ticket"
-    ]
-  },
-  sales_discovery: {
-    title: "Sales Discovery Call",
-    summary: "Prep agenda, qualify needs, next steps, and CRM update.",
-    steps: [
-      "Prep agenda & research account",
-      "Run discovery and qualify",
-      "Identify stakeholders & timeline",
-      "Agree on next steps",
-      "Update CRM and share recap"
-    ]
-  }
-};
+    renderQuickTemplates();
 
-// Click handler for template buttons
-const templatesSection = document.getElementById('templates');
-if (templatesSection){
-  templatesSection.addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-template]');
-    if (!btn) return;
-    const key = btn.getAttribute('data-template');
-    const t = TEMPLATE_LIBRARY[key];
-    if (!t) { toast('Template not found'); return; }
+    const asideEl = document.querySelector('.aside');
+    if (asideEl){
+      asideEl.addEventListener('click', (e)=>{
+        const b = e.target.closest('.qtpl-btn'); if(!b) return;
+        const key = b.getAttribute('data-template');
+        const t = TEMPLATE_LIBRARY[key]; if(!t) return;
+        const sop = { id: makeId(), title: t.title, summary: t.summary, steps: t.steps.slice() };
+        sops.unshift(sop); active = sop.id;
+        const editorTabBtn = document.querySelector('[data-tab="editor"]'); if (editorTabBtn) editorTabBtn.click();
+        renderEditor(); toast('Template added');
+      });
+    }
 
-    const sop = { id: makeId(), title: t.title, summary: t.summary, steps: t.steps.slice() };
-    sops.unshift(sop);
-    active = sop.id;
+    // Restore Version
+    const versionsListEl = document.getElementById('versions-list');
+    if (versionsListEl) {
+      versionsListEl.onclick = (e)=>{
+        const btn = e.target.closest('[data-restore]'); if (!btn) return;
+        const verN = parseInt(btn.getAttribute('data-restore'), 10);
+        const sop = sops.find(s=>s.id===active);
+        if (!sop || !Array.isArray(sop.versions)) { toast('No versions'); return; }
+        const v = sop.versions.find(x=>x.n === verN);
+        if (!v) { toast('Version not found'); return; }
+        sop.title   = v.title   || 'Untitled';
+        sop.summary = v.summary || '';
+        sop.steps   = (v.steps || []).map(t => (typeof t === 'string' ? t : (t?.title || '')));
+        renderEditor();
+        document.querySelector('[data-tab="editor"]').click();
+        toast('Restored v'+verN);
+      };
+    }
 
-    // Switch to Editor and render
-    const editorTabBtn = document.querySelector('[data-tab="editor"]');
-    if (editorTabBtn) editorTabBtn.click();
-    renderEditor();
-    toast('Template added');
-  });
-}
-
-function renderQuickTemplates(){
-  const list = document.getElementById('qtpl-list');
-  if(!list || typeof TEMPLATE_LIBRARY !== 'object') return;
-
-  // pick a few most useful ones; adjust as you like
-  const picks = ['onboarding','agency_client_onboarding','minor_outage','google_ads_weekly']
-    .filter(k => TEMPLATE_LIBRARY[k]);
-  list.innerHTML = picks.map(k => {
-    const t = TEMPLATE_LIBRARY[k];
-    return `<button class="qtpl-btn" data-template="${k}">${t.title}</button>`;
-  }).join('');
-}
-
-// Handle clicks
-const asideEl = document.querySelector('.aside');
-if (asideEl){
-  asideEl.addEventListener('click', (e)=>{
-    const b = e.target.closest('.qtpl-btn');
-    if(!b) return;
-    const key = b.getAttribute('data-template');
-    const t = TEMPLATE_LIBRARY[key];
-    if(!t) return;
-
-    const sop = { id: makeId(), title: t.title, summary: t.summary, steps: t.steps.slice() };
-    sops.unshift(sop); active = sop.id;
-
-    // jump to Editor and show it
-    const editorTabBtn = document.querySelector('[data-tab="editor"]');
-    if (editorTabBtn) editorTabBtn.click();
-    renderEditor(); toast('Template added');
-  });
-}
-
-// run once the page is ready (or right after TEMPLATE_LIBRARY is declared)
-renderQuickTemplates();
-
-
-    // Restore Version (C5)
-const versionsListEl = document.getElementById('versions-list');
-if (versionsListEl) {
-  versionsListEl.onclick = (e)=>{
-    const btn = e.target.closest('[data-restore]');
-    if (!btn) return;
-    const verN = parseInt(btn.getAttribute('data-restore'), 10);
-    const sop = sops.find(s=>s.id===active);
-    if (!sop || !Array.isArray(sop.versions)) { toast('No versions'); return; }
-
-    const v = sop.versions.find(x=>x.n === verN);
-    if (!v) { toast('Version not found'); return; }
-
-    // Apply snapshot to current SOP
-    sop.title   = v.title   || 'Untitled';
-    sop.summary = v.summary || '';
-    sop.steps   = (v.steps || []).map(t => (typeof t === 'string' ? t : (t?.title || '')));
-
-    // Re-render editor and switch back to it
-    renderEditor();
-    document.querySelector('[data-tab="editor"]').click();
-    toast('Restored v'+verN);
-  };
-}
-  
-    // Initial demo content
+    // Initial demo
     const demo = { id: makeId(), title:"New Employee Onboarding", summary:"Welcome, access, buddy, tools, first-week goals.", steps:["Send welcome email","Provision accounts","IT & security checklist","Assign buddy & intro call","First week goals"] };
     sops = [demo]; active=demo.id; renderEditor();
-    
+
+    // How steps: measure line & swap GIF
+    (function(){
+      const wrap = document.querySelector('#how-steps'); if(!wrap) return;
+      const steps = Array.from(wrap.querySelectorAll('.hstep'));
+      function setActive(n){
+        steps.forEach((btn, i) => {
+          const on = i === n;
+          btn.classList.toggle('active', on);
+          btn.setAttribute('aria-current', on ? 'step' : 'false');
+        });
+      }
+      let current = steps.findIndex(b => b.classList.contains('active'));
+      if (current < 0) current = 0; setActive(current);
+      steps.forEach((btn, i) => btn.addEventListener('click', () => setActive(i)));
+      function measureRail(){
+        const firstDot = steps[0]?.querySelector('.dot');
+        const lastDot  = steps[steps.length-1]?.querySelector('.dot');
+        if(!firstDot || !lastDot) return;
+        const host = wrap; const hostRect = host.getBoundingClientRect();
+        const f = firstDot.getBoundingClientRect(); const l = lastDot.getBoundingClientRect();
+        const top    = Math.round((f.top + f.height/2) - hostRect.top);
+        const bottom = Math.round(hostRect.bottom - (l.top + l.height/2));
+        host.style.setProperty('--lineTop', `${top}px`);
+        host.style.setProperty('--lineBottom', `${bottom}px`);
+      }
+      window.addEventListener('load', measureRail);
+      window.addEventListener('resize', measureRail);
+      setTimeout(measureRail, 0);
+    })();
+
+    (function(){
+      const wrap = document.getElementById('how-steps'); if(!wrap) return;
+      const buttons = wrap.querySelectorAll('.hstep');
+      const shot = document.querySelector('.hshot');
+      const img  = shot ? shot.querySelector('img') : null;
+      const ph   = shot ? shot.querySelector('.ph') : null;
+      function showPlaceholder(){ if(!img) return; img.style.display = 'none'; if(ph) ph.style.display = 'grid'; }
+      function showSrc(src){
+        if(!img) return; if(!src){ showPlaceholder(); return; }
+        img.onload  = ()=>{ img.style.display = 'block'; if(ph) ph.style.display = 'none'; };
+        img.onerror = showPlaceholder;
+        img.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+      }
+      buttons.forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          buttons.forEach(b=>{ b.classList.remove('active'); b.removeAttribute('aria-current'); });
+          btn.classList.add('active'); btn.setAttribute('aria-current','step');
+          showSrc(btn.dataset.gif || '');
+          if (typeof updateRail === 'function') updateRail();
+        });
+      });
+      const activeBtn = wrap.querySelector('.hstep.active');
+      if(activeBtn) showSrc(activeBtn.dataset.gif || '');
+    })();
+
+    // Pricing period toggle
+    (function(){
+      const tgl = document.getElementById('billToggle');
+      const grid = document.getElementById('pricingGrid');
+      if(!tgl || !grid) return;
+      function setPeriod(isAnnual){
+        grid.querySelectorAll('.pcard').forEach(card=>{
+          const m = parseFloat(card.getAttribute('data-month')||'0');
+          const y = parseFloat(card.getAttribute('data-year')||m);
+          const amtEl = card.querySelector('.amt');
+          const perEl = card.querySelector('.per');
+          const val = isAnnual ? y : m;
+          if(amtEl) amtEl.textContent = '$' + (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1));
+          if(perEl) perEl.textContent = isAnnual ? '/mo (billed yearly)' : '/mo';
+        });
+      }
+      setPeriod(false);
+      tgl.addEventListener('change', ()=> setPeriod(tgl.checked));
+    })();
+
+    // FAQ accordion
+    (function(){
+      const faq = document.querySelector('.faq'); if(!faq) return;
+      const btns = faq.querySelectorAll('.acc-btn');
+      function closeOthers(current){
+        btns.forEach(btn => {
+          if(btn !== current){
+            btn.setAttribute('aria-expanded','false');
+            btn.parentElement.classList.remove('open');
+            btn.nextElementSibling.style.maxHeight = 0;
+          }
+        });
+      }
+      btns.forEach(btn => {
+        const panel = btn.nextElementSibling;
+        if(btn.getAttribute('aria-expanded') === 'true'){
+          btn.parentElement.classList.add('open');
+          panel.style.maxHeight = panel.scrollHeight + 'px';
+        }
+        btn.addEventListener('click', () => {
+          const expanded = btn.getAttribute('aria-expanded') === 'true';
+          if(expanded){
+            btn.setAttribute('aria-expanded','false');
+            btn.parentElement.classList.remove('open');
+            panel.style.maxHeight = 0;
+          }else{
+            closeOthers(btn);
+            btn.setAttribute('aria-expanded','true');
+            btn.parentElement.classList.add('open');
+            panel.style.maxHeight = panel.scrollHeight + 'px';
+          }
+        });
+      });
+      window.addEventListener('resize', () => {
+        faq.querySelectorAll('.acc-btn[aria-expanded="true"]').forEach(btn => {
+          const p = btn.nextElementSibling;
+          p.style.maxHeight = p.scrollHeight + 'px';
+        });
+      });
+    })();
   </script>
-  
-<script>
-(function(){
-  const wrap = document.querySelector('#how-steps');
-  if(!wrap) return;
-  const steps = Array.from(wrap.querySelectorAll('.hstep'));
-
-  function setActive(n){
-    steps.forEach((btn, i) => {
-      const on = i === n;
-      btn.classList.toggle('active', on);
-      btn.setAttribute('aria-current', on ? 'step' : 'false');
-    });
-  }
-
-  // init (ensure exactly one active)
-  let current = steps.findIndex(b => b.classList.contains('active'));
-  if (current < 0) current = 0;
-  setActive(current);
-
-  // click to activate (no auto-advance)
-  steps.forEach((btn, i) => btn.addEventListener('click', () => setActive(i)));
-
-  // === precise rail: line starts/ends at dot centers ===
-  function measureRail(){
-    const firstDot = steps[0]?.querySelector('.dot');
-    const lastDot  = steps[steps.length-1]?.querySelector('.dot');
-    if(!firstDot || !lastDot) return;
-
-    const host = wrap;                       // .hsteps element
-    const hostRect = host.getBoundingClientRect();
-    const f = firstDot.getBoundingClientRect();
-    const l = lastDot.getBoundingClientRect();
-
-    const top    = Math.round((f.top + f.height/2) - hostRect.top);
-    const bottom = Math.round(hostRect.bottom - (l.top + l.height/2));
-
-    host.style.setProperty('--lineTop', `${top}px`);
-    host.style.setProperty('--lineBottom', `${bottom}px`);
-  }
-
-  // run on load and resize (fonts/hero images can shift heights)
-  window.addEventListener('load', measureRail);
-  window.addEventListener('resize', measureRail);
-  setTimeout(measureRail, 0);
-})();
-</script>
-<script>
-(function(){
-  const wrap = document.getElementById('how-steps');
-  if(!wrap) return;
-
-  const buttons = wrap.querySelectorAll('.hstep');
-  const shot = document.querySelector('.hshot');
-  const img  = shot ? shot.querySelector('img') : null;
-  const ph   = shot ? shot.querySelector('.ph') : null;
-
-  function showPlaceholder(){
-    if(!img) return;
-    img.style.display = 'none';
-    if(ph) ph.style.display = 'grid';
-  }
-
-  function showSrc(src){
-    if(!img) return;
-    if(!src){ showPlaceholder(); return; }
-
-    img.onload  = ()=>{ img.style.display = 'block'; if(ph) ph.style.display = 'none'; };
-    img.onerror = showPlaceholder;
-
-    // swap src (cache-bust during dev; remove Date.now() if you want caching)
-    img.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
-  }
-
-  buttons.forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      buttons.forEach(b=>{ b.classList.remove('active'); b.removeAttribute('aria-current'); });
-      btn.classList.add('active');
-      btn.setAttribute('aria-current','step');
-
-      showSrc(btn.dataset.gif || '');
-
-      // if your rail re-measure function exists, call it (safe no-op otherwise)
-      if (typeof updateRail === 'function') updateRail();
-    });
-  });
-
-  // Initialise media from the active step on load
-  const active = wrap.querySelector('.hstep.active');
-  if(active) showSrc(active.dataset.gif || '');
-})();
-</script>
-
-<script>
-(function(){
-  const tgl = document.getElementById('billToggle');
-  const grid = document.getElementById('pricingGrid');
-  if(!tgl || !grid) return;
-
-  function setPeriod(isAnnual){
-    grid.querySelectorAll('.pcard').forEach(card=>{
-      const m = parseFloat(card.getAttribute('data-month')||'0');
-      const y = parseFloat(card.getAttribute('data-year')||m);
-      const amtEl = card.querySelector('.amt');
-      const perEl = card.querySelector('.per');
-      const val = isAnnual ? y : m;
-      if(amtEl) amtEl.textContent = '$' + (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1));
-      if(perEl) perEl.textContent = isAnnual ? '/mo (billed yearly)' : '/mo';
-    });
-  }
-
-  setPeriod(false);           // default Monthly
-  tgl.addEventListener('change', ()=> setPeriod(tgl.checked));
-})();
-</script>
-<script>
-(function(){
-  const faq = document.querySelector('.faq');
-  if(!faq) return;
-
-  const btns = faq.querySelectorAll('.acc-btn');
-
-  function closeOthers(current){
-    btns.forEach(btn => {
-      if(btn !== current){
-        btn.setAttribute('aria-expanded','false');
-        btn.parentElement.classList.remove('open');
-        btn.nextElementSibling.style.maxHeight = 0;
-      }
-    });
-  }
-
-  btns.forEach(btn => {
-    const panel = btn.nextElementSibling;
-
-    // if first item is pre-opened, size it
-    if(btn.getAttribute('aria-expanded') === 'true'){
-      btn.parentElement.classList.add('open');
-      panel.style.maxHeight = panel.scrollHeight + 'px';
-    }
-
-    btn.addEventListener('click', () => {
-      const expanded = btn.getAttribute('aria-expanded') === 'true';
-      if(expanded){
-        btn.setAttribute('aria-expanded','false');
-        btn.parentElement.classList.remove('open');
-        panel.style.maxHeight = 0;
-      }else{
-        closeOthers(btn);
-        btn.setAttribute('aria-expanded','true');
-        btn.parentElement.classList.add('open');
-        panel.style.maxHeight = panel.scrollHeight + 'px';
-      }
-    });
-  });
-
-  // keep panel height correct on resize
-  window.addEventListener('resize', () => {
-    faq.querySelectorAll('.acc-btn[aria-expanded="true"]').forEach(btn => {
-      const p = btn.nextElementSibling;
-      p.style.maxHeight = p.scrollHeight + 'px';
-    });
-  });
-})();
-</script>
-
 </body>
 </html>
