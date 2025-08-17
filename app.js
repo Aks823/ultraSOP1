@@ -74,6 +74,25 @@ const store = {
 let sops = store.get();
 let activeId = sops[0]?.id || null;
 
+// Keep multiple tabs in sync
+window.addEventListener("storage", (e) => {
+  if (e.key !== "ultrasop:data") return;
+  try {
+    sops = JSON.parse(e.newValue) || [];
+    if (activeId && !sops.find(s => s.id === activeId)) {
+      activeId = sops[0]?.id || null;
+    }
+    // Re-render whichever tab is visible
+    if (document.querySelector("#tab-editor.is-visible")) {
+      renderEditor();
+    } else if (document.querySelector("#tab-versions.is-visible")) {
+      renderVersions();
+    } else {
+      renderDashboard();
+    }
+  } catch {}
+});
+
 // --- Tabs ---
 function showTab(name){
   $$(".app__nav").forEach(b=>b.classList.toggle("is-active", b.dataset.tab === name));
@@ -87,14 +106,14 @@ showTab("dashboard");
 
 // --- Dashboard ---
 function renderDashboard(){
-  const q = $("#search").value.trim().toLowerCase();
-  const container = $("#tab-dashboard .grid");
+   q = $("#search").value.trim().toLowerCase();
+   container = $("#tab-dashboard .grid");
   container.innerHTML = "";
   sops
     .filter(s => !q || s.title.toLowerCase().includes(q) || s.summary.toLowerCase().includes(q))
     .sort((a,b)=> new Date(b.updatedAt)-new Date(a.updatedAt))
     .forEach(s => {
-      const el = document.createElement("article");
+       el = document.createElement("article");
       el.className = "card card--sop pop";
       el.innerHTML = `
         <div class="chip">v${(s.versions.at(-1)?.n) || 1}</div>
@@ -115,38 +134,61 @@ function renderDashboard(){
       showTab("editor");
     });
   });
+  
   container.querySelectorAll("[data-del]").forEach(b=>{
-    b.addEventListener("click", () => {
-      const id = b.getAttribute("data-del");
-      sops = sops.filter(s=>s.id!==id);
-      store.set(sops);
-      toast("Deleted");
-      renderDashboard();
-    });
+  b.addEventListener("click", () => {
+    const id = b.getAttribute("data-del");
+
+    // >>> INSERTED: fix active pointer on delete
+    const wasActive = id === activeId;
+    sops = sops.filter(s => s.id !== id);
+    if (wasActive) {
+      activeId = sops[0]?.id || null;
+    }
+    // <<<
+
+    // Guard against deleting the last SOP – keep a blank draft so the UI stays usable
+if (sops.length === 0) {
+  const blank = {
+    id: crypto.randomUUID(),
+    title: "",
+    summary: "",
+    steps: [],
+    updatedAt: new Date().toISOString(),
+    versions: []
+  };
+  sops = [blank];
+  activeId = blank.id;
+}
+
+    store.set(sops);
+    toast("Deleted");
+    renderDashboard();
   });
+});
 }
 $("#search").addEventListener("input", renderDashboard);
 $("#btn-new").addEventListener("click", ()=>{
-  const title = prompt("New SOP title?");
-  if(!title) return;
+  const title = prompt("New SOP title?") || "Untitled SOP";
   const sop = { id: crypto.randomUUID(), title, summary:"", steps:[], updatedAt:new Date().toISOString(), versions:[] };
   sops.unshift(sop);
   store.set(sops);
   activeId = sop.id;
   showTab("editor");
+  requestAnimationFrame(()=> $("#sop-title")?.focus()); // focus title
   toast("Created");
 });
 
 // --- Editor ---
 function renderEditor(){
-  const sop = sops.find(s=>s.id===activeId) || sops[0];
+   sop = sops.find(s=>s.id===activeId) || sops[0];
   if(!sop) return;
   $("#sop-title").value = sop.title;
   $("#sop-summary").value = sop.summary;
-  const ul = $("#steps-list");
+   ul = $("#steps-list");
   ul.innerHTML = "";
   sop.steps.forEach((t,i)=>{
-    const li = document.createElement("li");
+     li = document.createElement("li");
     li.className = "step";
     li.innerHTML = `
       <span class="step__index">${i+1}</span>
@@ -169,24 +211,41 @@ function renderEditor(){
       renderPreview(sop);
     });
   });
+
+  // Press Enter on the last input to add a new step
+const inputs = ul.querySelectorAll("input");
+inputs.forEach((inp, idx) => {
+  inp.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && idx === inputs.length - 1) {
+      e.preventDefault();
+      sop.steps.push("");
+      sop.updatedAt = new Date().toISOString();
+      store.set(sops);
+      renderEditor();
+      // focus the new input
+      requestAnimationFrame(() => ul.querySelector("li.step:last-child input")?.focus());
+    }
+  });
+});
+  
   ul.querySelectorAll("[data-up]").forEach(btn => btn.addEventListener("click", ()=>{
-    const i = +btn.getAttribute("data-up");
+     i = +btn.getAttribute("data-up");
     if(i===0) return;
-    const tmp = sop.steps[i-1]; sop.steps[i-1] = sop.steps[i]; sop.steps[i] = tmp;
+     tmp = sop.steps[i-1]; sop.steps[i-1] = sop.steps[i]; sop.steps[i] = tmp;
     sop.updatedAt = new Date().toISOString();
     store.set(sops);
     renderEditor();
   }));
   ul.querySelectorAll("[data-down]").forEach(btn => btn.addEventListener("click", ()=>{
-    const i = +btn.getAttribute("data-down");
+     i = +btn.getAttribute("data-down");
     if(i>=sop.steps.length-1) return;
-    const tmp = sop.steps[i+1]; sop.steps[i+1] = sop.steps[i]; sop.steps[i] = tmp;
+     tmp = sop.steps[i+1]; sop.steps[i+1] = sop.steps[i]; sop.steps[i] = tmp;
     sop.updatedAt = new Date().toISOString();
     store.set(sops);
     renderEditor();
   }));
   ul.querySelectorAll("[data-rm]").forEach(btn => btn.addEventListener("click", ()=>{
-    const i = +btn.getAttribute("data-rm");
+     i = +btn.getAttribute("data-rm");
     sop.steps.splice(i,1);
     sop.updatedAt = new Date().toISOString();
     store.set(sops);
@@ -217,9 +276,9 @@ function renderEditor(){
     }
   };
   $("#btn-save-version").onclick = ()=>{
-    const last = sop.versions.at(-1);
-    const nextN = (last?.n || 0) + 1;
-    const titles = sop.steps.map(t=>t.trim().split(". ")[0]);
+     last = sop.versions.at(-1);
+     nextN = (last?.n || 0) + 1;
+     titles = sop.steps.map(t=>t.trim().split(". ")[0]);
     sop.versions.push({ id: crypto.randomUUID(), n: nextN, at: new Date().toISOString(), titles });
     sop.updatedAt = new Date().toISOString();
     store.set(sops);
@@ -245,12 +304,12 @@ function renderPreview(sop){
 
 // --- Versions ---
 function renderVersions(){
-  const sop = sops.find(s=>s.id===activeId) || sops[0];
+   sop = sops.find(s=>s.id===activeId) || sops[0];
   if(!sop) return;
-  const ul = $("#versions-list");
+   ul = $("#versions-list");
   ul.innerHTML = "";
   sop.versions.forEach(v=>{
-    const li = document.createElement("li");
+     li = document.createElement("li");
     li.className = "ver";
     li.innerHTML = `
       <div><strong>v${v.n}</strong> · ${new Date(v.at).toLocaleString()}</div>
@@ -263,12 +322,12 @@ function renderVersions(){
   });
 
   ul.querySelectorAll("[data-diff]").forEach(b=>b.addEventListener("click", ()=>{
-    const id = b.getAttribute("data-diff");
-    const idx = sop.versions.findIndex(x=>x.id===id);
+     id = b.getAttribute("data-diff");
+     idx = sop.versions.findIndex(x=>x.id===id);
     if(idx<=0){ $("#diff-out").textContent = "No previous version to compare."; return; }
-    const prev = sop.versions[idx-1].titles;
-    const cur = sop.versions[idx].titles;
-    const out = [];
+     prev = sop.versions[idx-1].titles;
+     cur = sop.versions[idx].titles;
+     out = [];
     // naive diff
     cur.forEach(t => { if(!prev.includes(t)) out.push(`<div class="diff-add">+ ${t}</div>`); });
     prev.forEach(t => { if(!cur.includes(t)) out.push(`<div class="diff-del">− ${t}</div>`); });
