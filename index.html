@@ -776,6 +776,42 @@ body::after,
   .ttrack{ grid-template-columns: 1fr; }
 }
 
+    /* Testimonials – layout fixes */
+.tcard{ min-width:0; }                     /* allow content to shrink inside card */
+.tquote{ margin-bottom:10px; }             /* breathing room above meta row */
+
+/* Avatar + name + stars laid out as 3 columns */
+.tmeta{
+  display:grid;
+  grid-template-columns: 36px 1fr auto;    /* avatar | text grows | stars */
+  gap:10px;
+  align-items:center;
+}
+.tmeta > div:nth-child(2){                 /* the name/role block */
+  min-width:0;                             /* enable ellipsis if ever needed */
+}
+.trating{
+  white-space:nowrap;                      /* keep “★★★★★” on one line */
+}
+
+/* Avatar never squishes; supports either initials or <img> */
+.tavatar{
+  width:36px; height:36px;
+  flex:0 0 36px;                           /* hard stop against shrinking */
+  border-radius:50%;
+  overflow:hidden;                         /* ensure perfect circle crop */
+  background:#FFE6D4;
+  display:grid; place-items:center;
+  font-weight:700; color:#FF7A1A;
+}
+.tavatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+/* Make testimonials blend with the page background */
+#testimonials,
+.container.testimonials {
+  background: transparent !important;
+  background-image: none !important;
+}
 
   </style>
 </head>
@@ -1024,7 +1060,9 @@ body::after,
       <article class="tcard">
         <div class="tquote">“UltraSOP turned a 20-min ramble into a clean, 7-step SOP. We shipped it to the team in under 5 minutes.”</div>
         <div class="tmeta">
-          <div class="tavatar">AS</div>
+          <div class="tavatar">
+            <img src="/assets/avatars/shay.jpg" alt="Shay S. headshot">
+          </div>
           <div>
             <strong>Shay S.</strong><div class="muted small">Founder, Growth Studio</div>
           </div>
@@ -1035,7 +1073,9 @@ body::after,
       <article class="tcard">
         <div class="tquote">“The versioning is gold. I can restore any snapshot with notes—no more messy docs.”</div>
         <div class="tmeta">
-          <div class="tavatar">JL</div>
+          <div class="tavatar">
+            <img src="/assets/avatars/jay.jpg" alt="Jay L. headshot">
+          </div>
           <div>
             <strong>Jay L.</strong><div class="muted small">Ops Lead</div>
           </div>
@@ -1046,7 +1086,9 @@ body::after,
       <article class="tcard">
         <div class="tquote">“Export to PDF looks polished. Clients actually read it.”</div>
         <div class="tmeta">
-          <div class="tavatar">RM</div>
+          <div class="tavatar">
+            <img src="/assets/avatars/alice.jpg" alt="Alice M. headshot">
+          </div>
           <div>
             <strong>Alice M.</strong><div class="muted small">Agency Owner</div>
           </div>
@@ -1057,7 +1099,9 @@ body::after,
       <article class="tcard">
         <div class="tquote">“Recorded a quick walkthrough, UltraSOP did the rest. Huge time-saver.”</div>
         <div class="tmeta">
-          <div class="tavatar">KB</div>
+          <div class="tavatar">
+            <img src="/assets/avatars/kiran.jpg" alt="Kiran B. headshot">
+          </div>
           <div>
             <strong>Kiran B.</strong><div class="muted small">Success Manager</div>
           </div>
