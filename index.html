@@ -1825,11 +1825,13 @@ document.getElementById('btn-download-pdf').onclick = () => {
       }
     };
 
-    // Make “New SOP” just clear the UI
-    $("#btn-new").onclick = ()=>{
-      const empty = { id: makeId(), title:"New SOP", summary:"", steps:["Step 1","Step 2","Step 3"] };
-      sops.unshift(empty); active=empty.id; renderEditor(); toast("Draft created");
-    };
+    const btnNew = document.getElementById('btn-new');
+    if (btnNew) {
+      btnNew.onclick = ()=>{
+        const empty = { id: makeId(), title:"New SOP", summary:"", steps:["Step 1","Step 2","Step 3"] };
+        sops.unshift(empty); active=empty.id; renderEditor(); toast("Draft created");
+      };
+    }
     
 // Save Version (C3-a + notes)
 document.getElementById('btn-save').onclick = ()=>{
