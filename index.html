@@ -1464,6 +1464,7 @@ li.innerHTML =
     '<button class="btn" data-up="'+i+'">↑</button>' +
     '<button class="btn" data-down="'+i+'">↓</button>' +
     '<button class="btn" data-more="'+i+'">More</button>' +
+    '<button class="btn btn--cta" data-ai-rewrite="'+i+'">Rewrite</button>' +
     '<button class="btn" data-rm="'+i+'">✕</button>' +
   '</div>';
 
@@ -1623,6 +1624,55 @@ ul.querySelectorAll(".step-duration").forEach(inp=>{
     if (typeof sop.steps[idx] === "string") { sop.steps[idx] = { title: sop.steps[idx], details:"", durationMin:null }; }
     sop.steps[idx].durationMin = val;
     renderPreview(sop); renderJSON(sop);
+  };
+});
+
+      // AI Rewrite (single step)
+ul.querySelectorAll("[data-ai-rewrite]").forEach(btn=>{
+  btn.onclick = async ()=>{
+    const idx = parseInt(btn.getAttribute("data-ai-rewrite"),10);
+    const sop = sops.find(s=>s.id===active);
+    if(!sop) return;
+
+    const cur = sop.steps[idx];
+    const text = (typeof cur === "string") ? cur : (cur.title || "");
+    if(!text.trim()){ toast("Step is empty"); return; }
+
+    setLoading(true, "Rewriting step…");
+    try{
+      const res = await fetch('/.netlify/functions/rewriteStep', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          step: text,
+          sopTitle:  sop.title   || "",
+          sopSummary:sop.summary || ""
+        })
+      });
+      const data = await res.json().catch(()=>({error:"Invalid response"}));
+      if(!res.ok) throw new Error(data?.error || ("HTTP "+res.status));
+
+      const r = data.step || {};
+      // normalize into your step shape
+      sop.steps[idx] = (typeof r === 'object')
+        ? {
+            title:       r.title || text,
+            details:     r.details || "",
+            ownerRole:   r.ownerRole || "",
+            durationMin: (r.durationMin ?? null)
+          }
+        : (r || text);
+
+      renderEditor(); renderPreview(sop); renderJSON(sop);
+      toast("Step rewritten");
+    }catch(e){
+      console.error(e);
+      toast("Rewrite failed: " + e.message);
+      const err = document.getElementById('errbox');
+      if(err){ err.style.display='block'; err.textContent='Rewrite error: '+e.message; }
+    }finally{
+      setLoading(false);
+    }
   };
 });
 
