@@ -73,6 +73,35 @@ const store = {
 
 let sops = store.get();
 let activeId = sops[0]?.id || null;
+// Call Netlify function to generate a SOP from rough notes
+async function generateFromNotes(raw, overrideTitle = "") {
+  const res = await fetch("/.netlify/functions/generateSop", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ inputText: raw, overrideTitle })
+  });
+  // good: 200; errors: 4xx/5xx
+  if (!res.ok) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(`Generate failed (${res.status}). ${msg.slice(0,180)}`);
+  }
+  const data = await res.json();
+  const sop = data?.sop || {};
+
+  // your UI expects steps as strings; normalize
+  const steps = Array.isArray(sop.steps)
+    ? sop.steps.map(st => typeof st === "string" ? st : (st?.title || ""))
+    : [];
+
+  return {
+    id: crypto.randomUUID(),
+    title: (sop.title || "Untitled SOP"),
+    summary: (sop.summary || ""),
+    steps,
+    updatedAt: new Date().toISOString(),
+    versions: []
+  };
+}
 
 // Keep multiple tabs in sync
 window.addEventListener("storage", (e) => {
@@ -168,16 +197,46 @@ if (sops.length === 0) {
 });
 }
 $("#search").addEventListener("input", renderDashboard);
-$("#btn-new").addEventListener("click", ()=>{
+$("#btn-new").addEventListener("click", async ()=>{
+  // Ask for notes first; if provided, generate via OpenAI; if blank, create a manual blank SOP
+  const notes = prompt("Paste rough notes (leave empty to create a blank SOP):");
+
+  if (notes && notes.trim()) {
+    try {
+      toast("Generating…");
+      const sop = await generateFromNotes(notes.trim());
+      sops.unshift(sop);
+      store.set(sops);
+      activeId = sop.id;
+      showTab("editor");
+      requestAnimationFrame(()=> $("#sop-title")?.focus());
+      toast("Generated ✔");
+      return;
+    } catch (err) {
+      console.warn(err);
+      toast("Generation failed, creating blank instead");
+      // fall through to blank SOP below
+    }
+  }
+
+  // Blank SOP fallback (your original flow)
   const title = prompt("New SOP title?") || "Untitled SOP";
-  const sop = { id: crypto.randomUUID(), title, summary:"", steps:[], updatedAt:new Date().toISOString(), versions:[] };
+  const sop = {
+    id: crypto.randomUUID(),
+    title,
+    summary: "",
+    steps: [],
+    updatedAt: new Date().toISOString(),
+    versions: []
+  };
   sops.unshift(sop);
   store.set(sops);
   activeId = sop.id;
   showTab("editor");
-  requestAnimationFrame(()=> $("#sop-title")?.focus()); // focus title
+  requestAnimationFrame(()=> $("#sop-title")?.focus());
   toast("Created");
 });
+
 
 // --- Editor ---
 function renderEditor(){
