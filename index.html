@@ -554,14 +554,16 @@ body::after,
 }
 #hero-cards .hl-grid{
   display: grid;
-  grid-template-columns: repeat(4, 260px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));  /* full-width, equal columns */
   gap: 16px;
-  width: max-content;     /* shrink-wrap to tracks */
-  margin: 0 auto;         /* center the whole block */
+  width: 100%;                                       /* fill the .container */
 }
-@media (max-width:1140px){ #hero-cards .hl-grid{ grid-template-columns: repeat(2,260px); } }
-@media (max-width:560px){  #hero-cards .hl-grid{ grid-template-columns: 1fr; width:100%; } }
-
+@media (max-width:1140px){
+  #hero-cards .hl-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width:560px){
+  #hero-cards .hl-grid{ grid-template-columns: 1fr; }
+}
 
 #hero-cards .hl-item{
   display: flex;
