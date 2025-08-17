@@ -1037,7 +1037,7 @@ body::after,
             </div>
             <div>
               <div class="lbl">Preview</div>
-              <div id="enhance-status" style="display:none;align-items:center;gap:8px;font-size:12px;color:#6B7280;margin:4px 0 8px;display:flex"><span class="spin"></span><span>Enhancing…</span></div>
+             <div id="enhance-status" style="display:none;align-items:center;gap:8px;font-size:12px;color:#6B7280;margin:4px 0 8px"><span class="spin"></span><span>Enhancing…</span></div>
               <div id="preview" class="preview"></div>
               <button class="btn" id="btn-download-pdf" style="margin-top:8px">Download PDF</button>
               <div style="margin-top:12px">
@@ -1920,101 +1920,116 @@ document.getElementById('btn-dup').onclick = ()=>{
   toast('Duplicated');
 };
 
-    // Enhance all steps (sequential to avoid 502s)
-const btnRewriteAll = document.getElementById('btn-rewrite-all');
-if (btnRewriteAll) {
-  btnRewriteAll.addEventListener('click', async () => {
-    if (!active) { toast('Open a SOP first'); return; }
-    const sop = sops.find(s => s.id === active);
-    if (!sop || !Array.isArray(sop.steps) || sop.steps.length === 0) {
+    <script>
+// --- Enhance all steps (single clean handler with spinner + silent retry)
+(function(){
+  const btn = document.getElementById('btn-rewrite-all');
+  if (!btn) return;
+
+  const spinner = document.getElementById('enhance-status');
+  const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
+
+  // fetch with up to N retries for 502/504/429 + JSON-safe result
+  async function fetchJSON(url, opts, retries=2){
+    for (let a=0; a<=retries; a++){
+      try{
+        const res = await fetch(url, opts);
+        if (res.ok){
+          let data=null; try{ data = await res.json(); }catch{}
+          return { ok:true, data };
+        }
+        // transient? retry
+        if (a < retries && (res.status===502 || res.status===504 || res.status===429)){
+          await sleep(600*(a+1)); continue;
+        }
+        let msg=""; try{ msg = (await res.json())?.error || ""; }catch{}
+        return { ok:false, error: msg || `HTTP ${res.status}` };
+      }catch(err){
+        if (a < retries){ await sleep(600*(a+1)); continue; }
+        return { ok:false, error: err.message || 'Network error' };
+      }
+    }
+  }
+
+  btn.addEventListener('click', async ()=>{
+    if (!window.active){ toast('Open a SOP first'); return; }
+    const sop = (window.sops || []).find(s=>s.id===window.active);
+    if (!sop || !Array.isArray(sop.steps) || sop.steps.length===0){
       toast('No steps to enhance'); return;
     }
 
+    // UI on
     setLoading(true, 'Enhancing steps…');
+    if (spinner) spinner.style.display = 'flex';
 
-    try {
-      for (let i = 0; i < sop.steps.length; i++) {
-        const st = sop.steps[i];
-        const title = (typeof st === 'string' ? st : (st?.title || '')).trim();
+    try{
+      // Try batch endpoint first
+      const batch = await fetchJSON('/.netlify/functions/rewriteAll', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          steps: sop.steps,
+          sopTitle:  sop.title   || '',
+          sopSummary:sop.summary || ''
+        })
+      }, 1);
 
-        // skip empty rows
-        if (!title) continue;
+      let newSteps = null;
 
-        // call the same Netlify function used by the single "Rewrite"
-        const res = await fetch('/.netlify/functions/rewriteStep', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            step: title,
-            sopTitle: sop.title || '',
-            sopSummary: sop.summary || ''
-          })
-        });
+      if (batch.ok && Array.isArray(batch.data?.steps)) {
+        newSteps = batch.data.steps;
+      } else {
+        // Fallback: sequential per-step (keeps UI responsive & avoids 502 bursts)
+        const out = [];
+        for (let i=0; i<sop.steps.length; i++){
+          const cur   = sop.steps[i];
+          const title = (typeof cur==='string' ? cur : (cur?.title||'')).trim();
+          if (!title){ out.push(cur); continue; }
 
-        const data = await res.json().catch(() => ({}));
+          const r = await fetchJSON('/.netlify/functions/rewriteStep', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              step: title,
+              sopTitle:  sop.title   || '',
+              sopSummary:sop.summary || ''
+            })
+          }, 2);
 
-        // on success, replace this step with the enriched object
-        if (res.ok && data?.step) {
-          sop.steps[i] = data.step;
-        } else {
-          console.warn('Enhance failed for step', i + 1, data);
-          // continue gracefully on errors for a single step
+          if (r.ok && r.data?.step){
+            const s = r.data.step;
+            out.push(typeof s==='object' ? {
+              title:       s.title || title,
+              details:     s.details || '',
+              ownerRole:   s.ownerRole || '',
+              durationMin: (s.durationMin ?? null)
+            } : (s || title));
+          } else {
+            // keep original on failure (no error flash)
+            out.push(cur);
+          }
+          await sleep(250);
         }
-
-        // tiny delay between requests helps avoid 429/502 spikes
-        await new Promise(r => setTimeout(r, 250));
+        newSteps = out;
       }
 
-      renderEditor();             // re-render with enriched steps
+      if (!newSteps || !Array.isArray(newSteps)) throw new Error(batch.error || 'No steps returned');
+
+      // Apply + render
+      sop.steps = newSteps;
+      renderEditor(); renderPreview(sop); renderJSON(sop);
       toast('Steps enhanced');
-    } catch (err) {
+    } catch(err){
       console.error(err);
-      toast('Enhance failed');
+      toast('Enhance failed: ' + (err.message || 'Unknown error'));
     } finally {
+      // UI off
       setLoading(false);
+      if (spinner) spinner.style.display = 'none';
     }
   });
-}
-    // Rewrite all steps via Netlify function
-document.getElementById('btn-rewrite-all').onclick = async () => {
-  if (!active) { toast('Open a SOP first'); return; }
-  const sop = sops.find(s => s.id === active);
-  if (!sop) { toast('No SOP found'); return; }
-
-  // show loading (overlay + small “AI working” tip if you added it)
-  const tip = document.getElementById('ai-tip');
-  tip?.classList.add('show');
-  setLoading(true, 'Enhancing steps…');
-
-  try {
-    const res = await fetch('/.netlify/functions/rewriteAll', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        steps: sop.steps,
-        sopTitle: sop.title || '',
-        sopSummary: sop.summary || ''
-      })
-    });
-
-    let data;
-    try { data = await res.json(); } catch { data = null; }
-    if (!res.ok) throw new Error((data && data.error) ? data.error : `HTTP ${res.status}`);
-
-    const newSteps = Array.isArray(data?.steps) ? data.steps : null;
-    if (!newSteps) throw new Error('No steps returned');
-
-    sop.steps = newSteps;
-    renderEditor(); renderPreview(sop); renderJSON(sop);
-    toast('Steps enhanced');
-  } catch (err) {
-    console.error(err);
-    toast(`Enhance failed: ${err.message}`);
-  } finally {
-    tip?.classList.remove('show');
-    setLoading(false);
-  }
-};
+})();
+</script>
 
 
     // Templates library (UI-A5)
