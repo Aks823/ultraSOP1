@@ -450,100 +450,157 @@ document.getElementById('btn-download-pdf')?.addEventListener('click', () => {
     renderEditor(); renderVersions(); toast('Duplicated');
   });
 
-  // ===== Enhance all steps (single, resilient handler) =====
-  (function(){
-    const btn = document.getElementById('btn-rewrite-all');
-    if (!btn) return;
+  // ===== Auto Generate with AI / Enhance (hybrid) =====
+(function(){
+  const btn = document.getElementById('btn-rewrite-all');
+  if (!btn) return;
 
-    const spinner = document.getElementById('enhance-status');
-    const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
+  const spinner = document.getElementById('enhance-status');
+  const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
 
-    async function fetchJSON(url, opts, retries=2){
-      for (let a=0; a<=retries; a++){
-        try{
-          const res = await fetch(url, opts);
-          if (res.ok){
-            let data=null; try{ data = await res.json(); }catch{}
-            return { ok:true, data };
-          }
-          if (a < retries && (res.status===502 || res.status===504 || res.status===429)){
-            await sleep(600*(a+1)); continue;
-          }
-          let msg=""; try{ msg = (await res.json())?.error || ""; }catch{}
-          return { ok:false, error: msg || `HTTP ${res.status}` };
-        }catch(err){
-          if (a < retries){ await sleep(600*(a+1)); continue; }
-          return { ok:false, error: err.message || 'Network error' };
+  async function fetchJSON(url, opts, retries=2){
+    for (let a=0; a<=retries; a++){
+      try{
+        const res = await fetch(url, opts);
+        if (res.ok){
+          let data=null; try{ data = await res.json(); }catch{}
+          return { ok:true, data };
         }
+        if (a < retries && (res.status===502 || res.status===504 || res.status===429)){
+          await sleep(600*(a+1)); continue;
+        }
+        let msg=""; try{ msg = (await res.json())?.error || ""; }catch{}
+        return { ok:false, error: msg || `HTTP ${res.status}` };
+      }catch(err){
+        if (a < retries){ await sleep(600*(a+1)); continue; }
+        return { ok:false, error: err.message || 'Network error' };
       }
     }
+  }
 
-    btn.addEventListener('click', async ()=>{
-      if (!active){ toast('Open a SOP first'); return; }
-      const sop = sops.find(s=>s.id===active);
-      if (!sop || !Array.isArray(sop.steps) || sop.steps.length===0){
-        toast('No steps to enhance'); return;
+  // Generate steps if none exist, using Title/Summary fields (no modal)
+  async function generateFromTitleSummary(sop){
+    const title   = (document.getElementById('sop-title')?.value || '').trim();
+    const summary = (document.getElementById('sop-summary')?.value || '').trim();
+
+    // If the user hasn't entered anything, fall back to the modal
+    if (!title && !summary) return { openedModal: true };
+
+    // Build a simple raw input for your /generateSop function
+    const raw = (title ? `Title: ${title}\n` : '') + (summary || 'Generate a standard SOP outline.');
+
+    // Update spinner label to “Generating…”
+    if (spinner) {
+      spinner.style.display = 'flex';
+      const label = spinner.querySelector('span:last-child');
+      if (label) label.textContent = 'Generating…';
+    }
+    setLoading(true, 'Generating…');
+
+    try{
+      const sopNew = await callGenerateAPI(raw, title || '');
+      // Update the current SOP in place
+      sop.title   = title || sopNew.title || sop.title || 'Untitled';
+      sop.summary = sopNew.summary || summary || sop.summary || '';
+      sop.steps   = Array.isArray(sopNew.steps) ? sopNew.steps : [];
+
+      renderEditor(); renderPreview(sop); renderJSON(sop);
+      toast('Generated');
+      return { ok:true };
+    }catch(err){
+      console.error(err);
+      toast('Generate failed: ' + (err.message || 'Unknown error'));
+      return { ok:false };
+    }finally{
+      setLoading(false);
+      if (spinner) {
+        spinner.style.display = 'none';
+        const label = spinner.querySelector('span:last-child');
+        if (label) label.textContent = 'Enhancing…'; // restore default text
       }
+    }
+  }
 
-      setLoading(true, 'Enhancing steps…');
-      if (spinner) spinner.style.display = 'flex';
+  btn.addEventListener('click', async ()=>{
+    if (!active){ toast('Open a SOP first'); return; }
+    const sop = sops.find(s=>s.id===active);
+    if (!sop){ toast('No SOP found'); return; }
 
-      try{
-        // Try batch endpoint
-        const batch = await fetchJSON('/.netlify/functions/rewriteAll', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ steps: sop.steps, sopTitle: sop.title||'', sopSummary: sop.summary||'' })
-        }, 1);
+    // If NO steps yet: generate using Title/Summary, or open the modal if fields are empty
+    if (!Array.isArray(sop.steps) || sop.steps.length === 0){
+      const res = await generateFromTitleSummary(sop);
+      if (res?.openedModal){
+        // Nothing in Title/Summary — open the modal to collect rough notes
+        if (typeof openGen === 'function') openGen();
+        else document.getElementById('btn-open-modal')?.click();
+      }
+      return;
+    }
 
-        let newSteps = null;
+    // If steps exist: run the existing enhance flow
+    if (spinner) {
+      spinner.style.display = 'flex';
+      const label = spinner.querySelector('span:last-child');
+      if (label) label.textContent = 'Enhancing…';
+    }
+    setLoading(true, 'Enhancing steps…');
 
-        if (batch.ok && Array.isArray(batch.data?.steps)) {
-          newSteps = batch.data.steps;
-        } else {
-          // Fallback: per-step
-          const out = [];
-          for (let i=0; i<sop.steps.length; i++){
-            const cur   = sop.steps[i];
-            const title = (typeof cur==='string' ? cur : (cur?.title||'')).trim();
-            if (!title){ out.push(cur); continue; }
+    try{
+      // Try batch endpoint
+      const batch = await fetchJSON('/.netlify/functions/rewriteAll', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ steps: sop.steps, sopTitle: sop.title||'', sopSummary: sop.summary||'' })
+      }, 1);
 
-            const r = await fetchJSON('/.netlify/functions/rewriteStep', {
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ step:title, sopTitle: sop.title||'', sopSummary: sop.summary||'' })
-            }, 2);
+      let newSteps = null;
 
-            if (r.ok && r.data?.step){
-              const s = r.data.step;
-              out.push(typeof s==='object' ? {
-                title:       s.title || title,
-                details:     s.details || '',
-                ownerRole:   s.ownerRole || '',
-                durationMin: (s.durationMin ?? null)
-              } : (s || title));
-            } else {
-              out.push(cur);
-            }
-            await sleep(250);
+      if (batch.ok && Array.isArray(batch.data?.steps)) {
+        newSteps = batch.data.steps;
+      } else {
+        // Fallback: per-step rewrite
+        const out = [];
+        for (let i=0; i<sop.steps.length; i++){
+          const cur   = sop.steps[i];
+          const title = (typeof cur==='string' ? cur : (cur?.title||'')).trim();
+          if (!title){ out.push(cur); continue; }
+
+          const r = await fetchJSON('/.netlify/functions/rewriteStep', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ step:title, sopTitle: sop.title||'', sopSummary: sop.summary||'' })
+          }, 2);
+
+          if (r.ok && r.data?.step){
+            const s = r.data.step;
+            out.push(typeof s==='object' ? {
+              title:       s.title || title,
+              details:     s.details || '',
+              ownerRole:   s.ownerRole || '',
+              durationMin: (s.durationMin ?? null)
+            } : (s || title));
+          } else {
+            out.push(cur);
           }
-          newSteps = out;
+          await sleep(250);
         }
-
-        if (!newSteps || !Array.isArray(newSteps)) throw new Error(batch.error || 'No steps returned');
-
-        sop.steps = newSteps;
-        renderEditor(); renderPreview(sop); renderJSON(sop);
-        toast('Steps enhanced');
-      } catch(err){
-        console.error(err);
-        toast('Enhance failed: ' + (err.message || 'Unknown error'));
-      } finally {
-        setLoading(false);
-        if (spinner) spinner.style.display = 'none';
+        newSteps = out;
       }
-    });
-  })();
+
+      if (!newSteps || !Array.isArray(newSteps)) throw new Error(batch.error || 'No steps returned');
+
+      sop.steps = newSteps;
+      renderEditor(); renderPreview(sop); renderJSON(sop);
+      toast('Steps enhanced');
+    } catch(err){
+      console.error(err);
+      toast('Enhance failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setLoading(false);
+      if (spinner) spinner.style.display = 'none';
+    }
+  });
+})();
 
   // ===== Templates library (sidebar “Quick templates”) =====
   const TEMPLATE_LIBRARY = {
