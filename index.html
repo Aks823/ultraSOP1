@@ -745,6 +745,37 @@ body::after,
   .site-footer .footer-right { gap: 12px; }
 }
 
+    /* ===== Testimonials: freeze marquee & use a simple grid ===== */
+.tmarquee{ overflow: visible; }
+.tmarquee::before,
+.tmarquee::after{ display: none; }     /* remove the edge fades */
+
+.ttrack{
+  /* kill the marquee animation */
+  animation: none !important;
+  /* switch from sliding row to a fixed grid */
+  display: grid;
+  grid-template-columns: repeat(4, minmax(260px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+  justify-content: center;
+}
+
+/* cards were sized for a marquee; let them fill the grid cleanly */
+.tcard{
+  flex: initial !important;
+  width: auto !important;
+  max-width: 360px;          /* keep a tidy max width if the grid grows */
+}
+
+/* responsive: 2-up tablet, 1-up phone */
+@media (max-width: 980px){
+  .ttrack{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+}
+@media (max-width: 560px){
+  .ttrack{ grid-template-columns: 1fr; }
+}
+
 
   </style>
 </head>
@@ -1007,52 +1038,6 @@ body::after,
           <div class="tavatar">JL</div>
           <div>
             <strong>Jay L.</strong><div class="muted small">Ops Lead</div>
-          </div>
-          <div class="trating">★★★★★</div>
-        </div>
-      </article>
-
-      <article class="tcard">
-        <div class="tquote">“Export to PDF looks polished. Clients actually read it.”</div>
-        <div class="tmeta">
-          <div class="tavatar">RM</div>
-          <div>
-            <strong>Alice M.</strong><div class="muted small">Agency Owner</div>
-          </div>
-          <div class="trating">★★★★☆</div>
-        </div>
-      </article>
-
-      <article class="tcard">
-        <div class="tquote">“Recorded a quick walkthrough, UltraSOP did the rest. Huge time-saver.”</div>
-        <div class="tmeta">
-          <div class="tavatar">KB</div>
-          <div>
-            <strong>Kiran B.</strong><div class="muted small">Success Manager</div>
-          </div>
-          <div class="trating">★★★★★</div>
-        </div>
-      </article>
-
-      <!-- Row B (duplicate A for seamless loop) -->
-      <article class="tcard">
-        <div class="tquote">“UltraSOP turned a 20-min ramble into a clean, 7-step SOP. We shipped it to the team in under 5 minutes.”</div>
-        <div class="tmeta">
-          <div class="tavatar">AS</div>
-          <div>
-            <strong>Shay S.</strong><div class="muted small">Founder, Growth Studio</div>
-          </div>
-          <div class="trating">★★★★★</div>
-        </div>
-      </article>
-
-      <article class="tcard">
-        <div class="tquote">“The versioning is gold. I can restore any snapshot with notes—no more messy docs.”</div>
-        <div class="tmeta">
-          <div class="tavatar">JL</div>
-          <div>
-            <strong>Jay L.</strong><div class="muted small">Ops Lead</div>
-            
           </div>
           <div class="trating">★★★★★</div>
         </div>
