@@ -16,7 +16,7 @@
   // Top nav smooth scrolls
   $("#nav-get")?.addEventListener("click", () => document.getElementById("app")?.scrollIntoView({ behavior: "smooth" }));
   $("#hero-try")?.addEventListener("click", () => $("#btn-open-modal")?.click());
-  $("#hero-learn")?.addEventListener("click", () => document.getElementById("resources")?.scrollIntoView({ behavior: "smooth" }));
+  $("#hero-learn")?.addEventListener("click", () => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" }));
 
   // ===== Tabs =====
   $$(".tabbtn").forEach(b=>{
@@ -705,4 +705,129 @@ document.getElementById('btn-download-pdf')?.addEventListener('click', () => {
   // Initial demo document
   const demo = { id: makeId(), title:"New Employee Onboarding", summary:"Welcome, access, buddy, tools, first-week goals.", steps:["Send welcome email","Provision accounts","IT & security checklist","Assign buddy & intro call","First week goals"] };
   sops = [demo]; active=demo.id; renderEditor();
+  /* === How steps: measure line === */
+(function(){
+  const wrap = document.getElementById('how-steps'); if(!wrap) return;
+  const steps = Array.from(wrap.querySelectorAll('.hstep'));
+
+  function setActive(n){
+    steps.forEach((btn, i) => {
+      const on = i === n;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-current', on ? 'step' : 'false');
+    });
+  }
+
+  let current = steps.findIndex(b => b.classList.contains('active'));
+  if (current < 0) current = 0; setActive(current);
+
+  function measureRail(){
+    const firstDot = steps[0]?.querySelector('.dot');
+    const lastDot  = steps[steps.length-1]?.querySelector('.dot');
+    if(!firstDot || !lastDot) return;
+    const host = wrap; const hostRect = host.getBoundingClientRect();
+    const f = firstDot.getBoundingClientRect(); const l = lastDot.getBoundingClientRect();
+    const top    = Math.round((f.top + f.height/2) - hostRect.top);
+    const bottom = Math.round(hostRect.bottom - (l.top + l.height/2));
+    host.style.setProperty('--lineTop', `${top}px`);
+    host.style.setProperty('--lineBottom', `${bottom}px`);
+  }
+
+  window.addEventListener('load', measureRail);
+  window.addEventListener('resize', measureRail);
+  setTimeout(measureRail, 0);
+})();
+
+/* === How steps: swap GIF on click === */
+(function(){
+  const wrap = document.getElementById('how-steps'); if(!wrap) return;
+  const buttons = wrap.querySelectorAll('.hstep');
+  const shot = document.querySelector('.hshot');
+  const img  = shot ? shot.querySelector('img') : null;
+  const ph   = shot ? shot.querySelector('.ph') : null;
+
+  function showPlaceholder(){ if(!img) return; img.style.display='none'; if(ph) ph.style.display='grid'; }
+  function showSrc(src){
+    if(!img) return; if(!src){ showPlaceholder(); return; }
+    img.onload  = ()=>{ img.style.display='block'; if(ph) ph.style.display='none'; };
+    img.onerror = showPlaceholder;
+    img.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+  }
+
+  buttons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      buttons.forEach(b=>{ b.classList.remove('active'); b.removeAttribute('aria-current'); });
+      btn.classList.add('active'); btn.setAttribute('aria-current','step');
+      showSrc(btn.dataset.gif || '');
+    });
+  });
+
+  const activeBtn = wrap.querySelector('.hstep.active');
+  if(activeBtn) showSrc(activeBtn.dataset.gif || '');
+})();
+  /* === Pricing period toggle === */
+(function(){
+  const tgl  = document.getElementById('billToggle');
+  const grid = document.getElementById('pricingGrid');
+  if(!tgl || !grid) return;
+
+  function setPeriod(isAnnual){
+    grid.querySelectorAll('.pcard').forEach(card=>{
+      const m = parseFloat(card.getAttribute('data-month')||'0');
+      const y = parseFloat(card.getAttribute('data-year') || m);
+      const amtEl = card.querySelector('.amt');
+      const perEl = card.querySelector('.per');
+      const val = isAnnual ? y : m;
+      if(amtEl) amtEl.textContent = '$' + (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1));
+      if(perEl) perEl.textContent = isAnnual ? '/mo (billed yearly)' : '/mo';
+    });
+  }
+
+  setPeriod(false);
+  tgl.addEventListener('change', ()=> setPeriod(tgl.checked));
+})();
+  /* === FAQ accordion === */
+(function(){
+  const faq = document.querySelector('.faq'); if(!faq) return;
+  const btns = faq.querySelectorAll('.acc-btn');
+
+  function closeOthers(current){
+    btns.forEach(btn => {
+      if(btn !== current){
+        btn.setAttribute('aria-expanded','false');
+        btn.parentElement.classList.remove('open');
+        const p = btn.nextElementSibling;
+        if (p) p.style.maxHeight = 0;
+      }
+    });
+  }
+
+  btns.forEach(btn => {
+    const panel = btn.nextElementSibling;
+    if(btn.getAttribute('aria-expanded') === 'true'){
+      btn.parentElement.classList.add('open');
+      if(panel) panel.style.maxHeight = panel.scrollHeight + 'px';
+    }
+    btn.addEventListener('click', () => {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      if(expanded){
+        btn.setAttribute('aria-expanded','false');
+        btn.parentElement.classList.remove('open');
+        if(panel) panel.style.maxHeight = 0;
+      }else{
+        closeOthers(btn);
+        btn.setAttribute('aria-expanded','true');
+        btn.parentElement.classList.add('open');
+        if(panel) panel.style.maxHeight = panel.scrollHeight + 'px';
+      }
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    faq.querySelectorAll('.acc-btn[aria-expanded="true"]').forEach(btn => {
+      const p = btn.nextElementSibling;
+      if (p) p.style.maxHeight = p.scrollHeight + 'px';
+    });
+  });
+})();
 })();
