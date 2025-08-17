@@ -696,6 +696,46 @@ body::after,
 .ownergroup,.durgroup{ display:none; margin-top:6px; }
 .ownergroup.show,.durgroup.show{ display:block; }
 
+/* Slim footer */
+.site-footer {
+  background: #fff;
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.site-footer .footer-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.site-footer .footer-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;        /* spacing between links */
+  flex-wrap: wrap;  /* avoids overflow on narrow widths */
+}
+.site-footer a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.site-footer a:hover {
+  color: var(--text);           /* stays in your palette */
+  text-decoration: underline;   /* subtle hover affordance */
+}
+
+/* Mobile stack */
+@media (max-width: 640px) {
+  .site-footer .footer-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .site-footer .footer-right { gap: 12px; }
+}
+
+
   </style>
 </head>
 <body>
@@ -1230,36 +1270,19 @@ body::after,
   </div>
 </section>
 
-  <footer class="footer container">
-  <div style="display:grid; gap:16px">
-    <div style="display:flex; gap:24px; flex-wrap:wrap">
-      <div>
-        <div style="font-weight:700">Product</div>
-        <div class="muted"><a href="#product">Editor</a></div>
-        <div class="muted"><a href="#resources">How it works</a></div>
-        <div class="muted"><a href="#templates">Templates</a></div>
-      </div>
-      <div>
-        <div style="font-weight:700">Company</div>
-        <div class="muted"><a href="#">About</a></div>
-        <div class="muted"><a href="#">Contact</a></div>
-        <div class="muted"><a href="#">Careers</a></div>
-      </div>
-      <div>
-        <div style="font-weight:700">Resources</div>
-        <div class="muted"><a href="#pricing">Pricing</a></div>
-        <div class="muted"><a href="#">Docs</a></div>
-        <div class="muted"><a href="#">Changelog</a></div>
-      </div>
-      <div>
-        <div style="font-weight:700">Legal</div>
-        <div class="muted"><a href="#">Privacy</a></div>
-        <div class="muted"><a href="#">Terms</a></div>
-      </div>
-    </div>
-    <div>UltraSOP © <span id="year"></span> — Light orange + white theme.</div>
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container footer-wrap">
+    <div class="footer-left">UltraSOP © 2025</div>
+    <nav class="footer-right">
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/security">Security</a>
+      <a href="/contact">Contact</a>
+    </nav>
   </div>
 </footer>
+
 
   <!-- GENERATE MODAL -->
   <div class="modal" id="gen-modal" aria-hidden="true">
