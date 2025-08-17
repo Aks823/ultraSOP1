@@ -92,7 +92,6 @@
           '<button class="btn" data-up="'+i+'">↑</button>' +
           '<button class="btn" data-down="'+i+'">↓</button>' +
           '<button class="btn" data-more="'+i+'">More</button>' +
-          '<button class="btn btn--cta" data-ai-rewrite="'+i+'">Rewrite</button>' +
           '<button class="btn" data-rm="'+i+'">✕</button>' +
         '</div>';
 
@@ -211,36 +210,6 @@
         if (typeof sop.steps[idx] === "string") sop.steps[idx] = { title: sop.steps[idx], details:"", durationMin:null };
         sop.steps[idx].durationMin = val;
         renderPreview(sop); renderJSON(sop);
-      };
-    });
-
-    // Single-step AI rewrite
-    ul.querySelectorAll("[data-ai-rewrite]").forEach(btn=>{
-      btn.onclick = async ()=>{
-        const idx = parseInt(btn.getAttribute("data-ai-rewrite"),10);
-        const cur = sop.steps[idx];
-        const text = (typeof cur === "string") ? cur : (cur.title || "");
-        if(!text.trim()){ toast("Step is empty"); return; }
-
-        setLoading(true, "Rewriting step…");
-        try{
-          const res = await fetch('/.netlify/functions/rewriteStep', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ step:text, sopTitle:sop.title||"", sopSummary:sop.summary||"" })
-          });
-          const data = await res.json().catch(()=>({error:"Invalid response"}));
-          if(!res.ok) throw new Error(data?.error || ("HTTP "+res.status));
-
-          const r = data.step || {};
-          sop.steps[idx] = (typeof r === 'object')
-            ? { title: r.title || text, details: r.details || "", ownerRole: r.ownerRole || "", durationMin: (r.durationMin ?? null) }
-            : (r || text);
-
-          renderEditor(); renderPreview(sop); renderJSON(sop);
-          toast("Step rewritten");
-        }catch(e){ console.error(e); toast("Rewrite failed: " + e.message); }
-        finally{ setLoading(false); }
       };
     });
 
