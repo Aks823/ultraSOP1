@@ -7,8 +7,14 @@
   const $$ = s => Array.from(document.querySelectorAll(s));
   const toast = m => { const el=$("#toast"); if(!el) return; el.textContent=m; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"), 1600); };
   const makeId = () => 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-  const setLoading = (on, txt) => { $("#overlay")?.classList.toggle("show", on); const t=$("#overlay-text"); if(t) t.textContent = txt || "Generating…"; const btn=$("#gen-run"); if(btn) btn.disabled = !!on; };
-
+  const setLoading = (on, txt) => {
+  const ov = document.getElementById("overlay");
+  if (ov) ov.classList.toggle("show", !!on);
+  const t = document.getElementById("overlay-text");
+  if (t) t.textContent = txt || "Generating…";
+  const btn = document.getElementById("gen-run");
+  if (btn) btn.disabled = !!on;
+};
   // Year in footer (guarded)
   const yearEl = $("#year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();
@@ -35,15 +41,16 @@ $("#hero-try")?.addEventListener("click", () => {
   });
 
 // ===== Generate modal =====
-const modal = $("#gen-modal");
+const modal = document.getElementById("gen-modal");
 
 function openGen() {
   if (!modal) return;
   modal.classList.add("show");
   modal.setAttribute("aria-hidden", "false");
-  const err = $("#errbox");
+  const err = document.getElementById("errbox");
   if (err) err.style.display = "none";
-  $("#gen-input")?.focus();
+  const gi = document.getElementById("gen-input");
+  if (gi) gi.focus();
 }
 
 function closeGen() {
@@ -52,14 +59,17 @@ function closeGen() {
   modal.setAttribute("aria-hidden", "true");
 }
 
-// also expose (so inner closures can call safely)
 window.openGen = openGen;
 window.closeGen = closeGen;
 
-document.getElementById("btn-open-modal")?.addEventListener("click", openGen);
-document.getElementById("gen-close")?.addEventListener("click", closeGen);
-document.getElementById("gen-cancel")?.addEventListener("click", closeGen);
-
+(function(){
+  const o = document.getElementById("btn-open-modal");
+  const x = document.getElementById("gen-close");
+  const c = document.getElementById("gen-cancel");
+  if (o) o.addEventListener("click", openGen);
+  if (x) x.addEventListener("click", closeGen);
+  if (c) c.addEventListener("click", closeGen);
+})();
 
   $$(".segbtn").forEach(b=>b.addEventListener('click', ()=>{
     $$(".segbtn").forEach(x=>x.classList.remove("active"));
@@ -83,8 +93,11 @@ document.getElementById("gen-cancel")?.addEventListener("click", closeGen);
     if(!active) return;
     const sop = sops.find(s=>s.id===active); if(!sop) return;
 
-    $("#sop-title")  && ($("#sop-title").value   = sop.title   || "");
-    $("#sop-summary")&& ($("#sop-summary").value = sop.summary || "");
+    const _titleEl = document.getElementById("sop-title");
+if (_titleEl) _titleEl.value = sop.title || "";
+const _sumEl = document.getElementById("sop-summary");
+if (_sumEl) _sumEl.value = sop.summary || "";
+
 
     const ul = $("#steps-list"); if(!ul) return;
     ul.innerHTML = "";
@@ -650,9 +663,8 @@ if (!sop){ toast('No SOP found'); return; }
     // If NO steps yet: generate using Title/Summary, or open the modal if fields are empty
     if (!Array.isArray(sop.steps) || sop.steps.length === 0){
       const res = await generateFromTitleSummary(sop);
-      if (res?.openedModal){
-  // Nothing in Title/Summary — open the modal to collect rough notes
-  window.openGen?.();
+      if (res && res.openedModal) {
+  if (window.openGen) window.openGen();
 }
       return;
     }
@@ -814,7 +826,7 @@ if (!sop){ toast('No SOP found'); return; }
     const sop = { id: makeId(), title: t.title, summary: t.summary, steps: t.steps.slice() };
     sops.unshift(sop); active = sop.id;
 
-    document.querySelector('[data-tab="editor"]')?.click();
+    { const t = document.querySelector('[data-tab="editor"]'); if (t) t.click(); }
     renderEditor(); toast('Template added');
   });
 
@@ -827,7 +839,7 @@ if (!sop){ toast('No SOP found'); return; }
     if (!t) { toast('Template not found'); return; }
     const sop = { id: makeId(), title: t.title, summary: t.summary, steps: t.steps.slice() };
     sops.unshift(sop); active = sop.id;
-    document.querySelector('[data-tab="editor"]')?.click();
+    { const t = document.querySelector('[data-tab="editor"]'); if (t) t.click(); }
     renderEditor(); toast('Template added');
   });
 
