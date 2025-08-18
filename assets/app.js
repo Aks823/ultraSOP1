@@ -15,7 +15,12 @@
 
   // Top nav smooth scrolls
   $("#nav-get")?.addEventListener("click", () => document.getElementById("app")?.scrollIntoView({ behavior: "smooth" }));
-  $("#hero-try")?.addEventListener("click", () => $("#btn-open-modal")?.click());
+  
+  // NEW: scroll to the app and focus Title
+$("#hero-try")?.addEventListener("click", () => {
+  document.getElementById("app")?.scrollIntoView({ behavior: "smooth" });
+  setTimeout(() => $("#sop-title")?.focus(), 350);
+});
   $("#hero-learn")?.addEventListener("click", () => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" }));
 
   // ===== Tabs =====
@@ -401,29 +406,26 @@ document.getElementById('btn-download-pdf')?.addEventListener('click', () => {
 
 $("#gen-run")?.addEventListener('click', async ()=>{
   const raw = $("#gen-input")?.value.trim();
-  if(!raw){
-    const e=$("#errbox"); if(e){ e.style.display="block"; e.textContent="Paste some text first."; }
-    return;
-  }
+  if(!raw){ const e=$("#errbox"); if(e){ e.style.display="block"; e.textContent="Paste some text first."; } return; }
   const err=$("#errbox"); if(err) err.style.display="none";
-  const t0 = performance.now(); setLoading(true,"Generating…");
 
-  // Tiny local fallback in case the function errors
+  // CLOSE THE DIALOG FIRST, then show overlay while generating
+  closeGen();
+  const t0 = performance.now();
+  setLoading(true,"Generating…");
+
+  // Same tiny local fallback as before
   const localFromNotes = (notes, overrideTitle) => {
     const lines = String(notes).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
     const bulletRx = /^(\d+[\.\)]\s+|[-*]\s+)/;
-    let title = (overrideTitle || '').trim();
+    let title = ($("#gen-title-in")?.value || overrideTitle || '').trim();
     if (!title) {
       const tLine = lines.find(l => /^title\s*:/i.test(l));
       title = tLine ? tLine.replace(/^title\s*:/i,'').trim() : (lines[0] || 'Untitled SOP');
     }
     const steps = lines.filter(l => bulletRx.test(l)).map(l => l.replace(bulletRx,'').trim());
     const summary = lines.filter(l => !bulletRx.test(l) && !/^title\s*:/i.test(l)).slice(0,3).join(' — ').slice(0,240);
-    return {
-      title,
-      summary,
-      steps: (steps.length ? steps : ['Plan the work','Perform the work','Review & finalize']).map(s => ({ title: s }))
-    };
+    return { title, summary, steps: (steps.length?steps:['Plan the work','Perform the work','Review & finalize']).map(s => ({ title:s })) };
   };
 
   try{
@@ -431,18 +433,66 @@ $("#gen-run")?.addEventListener('click', async ()=>{
     const t1 = performance.now(); const m=$("#metrics"); if(m) m.textContent = "Generated in " + ((t1-t0)/1000).toFixed(1) + "s";
     sop.id = makeId();
     sops.unshift(sop); active=sop.id;
-    closeGen(); toast("Generated");
+    toast("Generated");
     renderEditor();
   }catch(e){
+    // Show friendly message but continue with fallback
     const box=$("#errbox"); if(box){ box.style.display="block"; box.textContent = "Error: " + (e.message || 'Unknown') + ". Using local fallback."; }
-    // Local fallback so user isn’t blocked
     try{
       const sop = localFromNotes(raw, $("#gen-title-in")?.value);
       sop.id = makeId();
       sops.unshift(sop); active=sop.id;
-      closeGen(); toast("Generated (fallback)");
+      toast("Generated (fallback)");
       renderEditor();
     }catch{}
+  }finally{
+    setLoading(false);
+  }
+});
+
+  // Inline generator: use Title + Summary, produce full steps
+document.getElementById('btn-generate-inline')?.addEventListener('click', async () => {
+  const title = ($("#sop-title")?.value || '').trim();
+  const summary = ($("#sop-summary")?.value || '').trim();
+
+  if (!title && !summary) {
+    toast('Add a title or summary first'); $("#sop-title")?.focus(); return;
+  }
+
+  // Build a simple notes blob the function understands
+  const raw = (title ? `Title: ${title}\n` : '') + summary;
+
+  // Local fallback in case the function errors
+  const localFromNotes = (notes, overrideTitle) => {
+    const lines = String(notes).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    const bulletRx = /^(\d+[\.\)]\s+|[-*]\s+)/;
+    let t = (overrideTitle || '').trim();
+    if (!t) {
+      const tLine = lines.find(l => /^title\s*:/i.test(l));
+      t = tLine ? tLine.replace(/^title\s*:/i, '').trim() : (lines[0] || 'Untitled SOP');
+    }
+    const steps = lines.filter(l => bulletRx.test(l)).map(l => l.replace(bulletRx,'').trim());
+    const sum = lines.filter(l => !bulletRx.test(l) && !/^title\s*:/i.test(l)).slice(0,3).join(' — ').slice(0,240);
+    return { title: t, summary: sum, steps: (steps.length?steps:['Plan the work','Perform the work','Review & finalize']).map(s => ({ title:s })) };
+  };
+
+  const t0 = performance.now();
+  setLoading(true, 'Generating…');
+
+  try{
+    const sop = await callGenerateAPI(raw, title);
+    const t1 = performance.now(); $("#metrics")?.textContent = "Generated in " + ((t1 - t0)/1000).toFixed(1) + "s";
+    sop.id = makeId();
+    sops.unshift(sop); active = sop.id;
+    renderEditor();
+    toast('Generated');
+  }catch(e){
+    // graceful fallback so user isn’t blocked
+    const sop = localFromNotes(raw, title);
+    sop.id = makeId();
+    sops.unshift(sop); active = sop.id;
+    renderEditor();
+    toast('Generated (fallback)');
   }finally{
     setLoading(false);
   }
@@ -760,9 +810,11 @@ $("#gen-run")?.addEventListener('click', async ()=>{
     toast('Restored v'+verN);
   });
 
-  // Initial demo document
-  const demo = { id: makeId(), title:"New Employee Onboarding", summary:"Welcome, access, buddy, tools, first-week goals.", steps:["Send welcome email","Provision accounts","IT & security checklist","Assign buddy & intro call","First week goals"] };
-  sops = [demo]; active=demo.id; renderEditor();
+  // NEW: empty start
+sops = [];
+active = null;
+// leave fields empty; user can type Title/Summary and click "Generate SOP"
+  
   /* === How steps: measure line === */
 (function(){
   const wrap = document.getElementById('how-steps'); if(!wrap) return;
