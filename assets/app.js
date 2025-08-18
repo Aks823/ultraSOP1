@@ -105,6 +105,9 @@ function clearAllNow(){
   const btnX    = document.getElementById('clear-close');
   const btnCancel = document.getElementById('clear-cancel');
   const btnYes  = document.getElementById('clear-confirm');
+   
+  // Remove any legacy top-bar button if an old bundle injected it
+  document.getElementById('btn-clear-all')?.remove();
 
   if (btnOpen)   btnOpen.addEventListener('click', openClear);
   if (btnX)      btnX.addEventListener('click', closeClear);
@@ -162,30 +165,6 @@ function clearAllNow(){
           '<button class="btn" data-more="'+i+'">More</button>' +
           '<button class="btn" data-rm="'+i+'">✕</button>' +
         '</div>';
-
-      // Clear All – wipes title, summary, and all steps of the current SOP
-document.getElementById('btn-clear')?.addEventListener('click', () => {
-  // guard + confirm
-  if (!window.confirm('Clear title, summary, and all steps?')) return;
-
-  // ensure there's a SOP to clear
-  let sop = active ? sops.find(s => s.id === active) : null;
-  if (!sop) {
-    sop = { id: makeId(), title: '', summary: '', steps: [] };
-    sops.unshift(sop);
-    active = sop.id;
-  } else {
-    sop.title = '';
-    sop.summary = '';
-    sop.steps = [];
-  }
-
-  renderEditor();            // rebind inputs & redraw
-  renderPreview(sop);
-  renderJSON(sop);
-  document.getElementById('sop-title')?.focus();
-  toast('Cleared');
-});
 
       // Pre-fill fields
       if (isObj) {
