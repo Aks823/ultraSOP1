@@ -504,36 +504,63 @@ function clearAllNow(){
     if (jb) jb.textContent = JSON.stringify(sop, null, 2);
   }
 
-  function renderVersions(){
-    if (!active) return;
-    const sop  = sops.find(s => s.id === active); if (!sop) return;
-    const list = $("#versions-list"); if (!list) return;
-    list.innerHTML = "";
+async function renderVersions(){
+  if (!active) return;
+  const sop  = sops.find(s => s.id === active); if (!sop) return;
+  const list = $("#versions-list"); if (!list) return;
 
-    const versions = Array.isArray(sop.versions) ? sop.versions : [];
-    if (!versions.length){
-      list.innerHTML = '<div class="card"><strong>No versions yet.</strong><p class="muted">Click "Save Version" in the top bar to snapshot this SOP.</p></div>';
-      return;
+  // Start with whatever we have locally
+  let versions = Array.isArray(sop.versions) ? sop.versions.slice() : [];
+
+  // Try the server if logged in and this SOP has a DB row
+  try{
+    if (supabase){
+      const { data:{ user } } = await supabase.auth.getUser();
+      if (user && sop._row_id){
+        const { data, error } = await supabase
+          .from('sop_versions')
+          .select('n, created_at, title, summary, notes')
+          .eq('sop_id', sop._row_id)
+          .order('n', { ascending: false });
+        if (!error && Array.isArray(data)){
+          versions = data.map(v => ({
+            n: v.n,
+            at: v.created_at,
+            title: v.title,
+            summary: v.summary,
+            notes: v.notes || ''
+          }));
+          sop.versions = versions.slice(); // cache in memory for the UI
+        }
+      }
     }
+  }catch(e){ console.warn('versions fetch:', e); }
 
-    versions.slice().reverse().forEach((v) => {
-      const safeNotes = v.notes && String(v.notes).trim()
-        ? String(v.notes).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        : '';
-      const el = document.createElement("div");
-      el.className = "card";
-      el.innerHTML =
-        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
-          '<div><strong>v'+v.n+'</strong> · '+ new Date(v.at).toLocaleString() +'</div>' +
-          '<div style="display:flex;align-items:center;gap:10px">' +
-            '<span class="muted" style="font-size:12px">'+(v.title||"")+'</span>' +
-            '<button class="btn" data-restore="'+v.n+'">Restore</button>' +
-          '</div>' +
-        '</div>' +
-        (safeNotes ? '<div class="muted" style="font-size:12px;margin-top:6px">Notes: '+ safeNotes +'</div>' : '');
-      list.appendChild(el);
-    });
+  list.innerHTML = "";
+  if (!versions.length){
+    list.innerHTML = '<div class="card"><strong>No versions yet.</strong><p class="muted">Click "Save Version" in the top bar to snapshot this SOP.</p></div>';
+    return;
   }
+
+  versions.forEach((v) => {
+    const safeNotes = v.notes && String(v.notes).trim()
+      ? String(v.notes).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      : '';
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
+        '<div><strong>v'+v.n+'</strong> · '+ new Date(v.at).toLocaleString() +'</div>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span class="muted" style="font-size:12px">'+(v.title||"")+'</span>' +
+          '<button class="btn" data-restore="'+v.n+'">Restore</button>' +
+        '</div>' +
+      '</div>' +
+      (safeNotes ? '<div class="muted" style="font-size:12px;margin-top:6px">Notes: '+ safeNotes +'</div>' : '');
+    list.appendChild(el);
+  });
+}
+
 
   // ===== PDF =====
   $("#btn-download-pdf")?.addEventListener("click", () => {
@@ -793,39 +820,64 @@ function clearAllNow(){
   $("#btn-generate-inline")?.addEventListener("click", autoGenerateOrEnhance); // the button below Summary
   $("#btn-rewrite-all")?.addEventListener("click", autoGenerateOrEnhance);     // optional topbar button (safe to remove)
 
-  // ===== Versions (Save / Duplicate / Restore) =====
-  $("#btn-save")?.addEventListener("click", () => {
-    if (!active) { toast("Open a SOP first"); return; }
-    const sop = sops.find(s=>s.id===active); if (!sop) { toast("No SOP found"); return; }
+// ===== Versions (Save / Duplicate / Restore) =====
+$("#btn-save")?.addEventListener("click", async () => {
+  if (!active) { toast("Open a SOP first"); return; }
+  const sop = sops.find(s=>s.id===active); if (!sop) { toast("No SOP found"); return; }
+
+  // sync latest inputs to local sop
+  sop.title   = $("#sop-title")?.value   ?? sop.title;
+  sop.summary = $("#sop-summary")?.value ?? sop.summary;
+
+  const notes = (window.prompt('Version notes (optional):','') || '').trim();
+
+  try{
+    setLoading(true, "Saving…");
+    const n = await insertVersionRow(sop, notes);
+    toast("Saved v"+n);
+
+    // Keep a lightweight local snapshot so the UI can show something even offline
     sop.versions = Array.isArray(sop.versions) ? sop.versions : [];
-    const nextN = sop.versions.length ? sop.versions[sop.versions.length-1].n + 1 : 1;
-    const notes = (window.prompt('Version notes (optional):','') || '').trim();
     sop.versions.push({
-      n: nextN, at: new Date().toISOString(),
-      title: sop.title || "Untitled", summary: sop.summary || "", notes,
+      n,
+      at: new Date().toISOString(),
+      title: sop.title,
+      summary: sop.summary,
+      notes,
       steps: (sop.steps||[]).map(st => (typeof st==="string" ? st : (st.title||"")))
     });
-    toast("Saved v"+nextN); renderVersions();
-  });
+    renderVersions();
+  }catch(e){
+    console.error(e);
+    toast("Save failed: " + (e.message || 'Unknown'));
+  }finally{
+    setLoading(false);
+  }
+});
 
-  $("#btn-dup")?.addEventListener("click", () => {
-    if (!active){ toast('Open a SOP first'); return; }
-    const src = sops.find(s=>s.id===active); if (!src){ toast('No SOP found'); return; }
-    const copy = JSON.parse(JSON.stringify(src));
-    copy.id = makeId(); copy.title = 'Copy of ' + (src.title || 'Untitled SOP'); copy.versions = [];
-    sops.unshift(copy); active = copy.id; renderEditor(); renderVersions(); toast('Duplicated');
-  });
+$("#btn-dup")?.addEventListener("click", async () => {
+  if (!active){ toast('Open a SOP first'); return; }
+  const src = sops.find(s=>s.id===active); if (!src){ toast('No SOP found'); return; }
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = makeId();
+  copy._row_id = null; // new DB row will be created on next save
+  copy.title = 'Copy of ' + (src.title || 'Untitled SOP');
+  copy.versions = [];
+  sops.unshift(copy); active = copy.id;
+  renderEditor(); renderVersions(); toast('Duplicated');
+});
 
-  $("#versions-list")?.addEventListener("click", (e) => {
-    const btn = e.target.closest('[data-restore]'); if (!btn) return;
-    const verN = parseInt(btn.getAttribute('data-restore'), 10);
-    const sop = sops.find(s=>s.id===active);
-    if (!sop || !Array.isArray(sop.versions)) { toast('No versions'); return; }
-    const v = sop.versions.find(x=>x.n === verN); if (!v) { toast('Version not found'); return; }
-    sop.title = v.title || 'Untitled'; sop.summary = v.summary || '';
-    sop.steps = (v.steps || []).map(t => (typeof t === 'string' ? t : (t?.title || '')));
-    renderEditor(); document.querySelector('[data-tab="editor"]')?.click(); toast('Restored v'+verN);
-  });
+// Restore uses whatever is loaded in memory for now
+$("#versions-list")?.addEventListener("click", (e) => {
+  const btn = e.target.closest('[data-restore]'); if (!btn) return;
+  const verN = parseInt(btn.getAttribute('data-restore'), 10);
+  const sop = sops.find(s=>s.id===active); if (!sop){ toast('No SOP'); return; }
+  const v = (sop.versions||[]).find(x=>x.n===verN); if (!v){ toast('Version not loaded locally'); return; }
+  sop.title = v.title || 'Untitled'; sop.summary = v.summary || '';
+  sop.steps = (v.steps || []).map(t => (typeof t==='string'? t : { title:t }));
+  renderEditor(); document.querySelector('[data-tab="editor"]')?.click(); toast('Restored v'+verN);
+});
+
 
   // ===== Templates library (sidebar “Quick templates”) =====
   const TEMPLATE_LIBRARY = {
