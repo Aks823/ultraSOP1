@@ -34,13 +34,32 @@ $("#hero-try")?.addEventListener("click", () => {
     };
   });
 
-  // ===== Generate modal =====
-  const modal=$("#gen-modal");
-  const openGen  = ()=>{ if(!modal) return; modal.classList.add("show"); modal.setAttribute("aria-hidden","false"); $("#errbox")?.style && ($("#errbox").style.display="none"); $("#gen-input")?.focus(); };
-  const closeGen = ()=>{ if(!modal) return; modal.classList.remove("show"); modal.setAttribute("aria-hidden","true"); };
-  $("#btn-open-modal")?.addEventListener('click', openGen);
-  $("#gen-close")?.addEventListener('click', closeGen);
-  $("#gen-cancel")?.addEventListener('click', closeGen);
+// ===== Generate modal =====
+const modal = $("#gen-modal");
+
+function openGen() {
+  if (!modal) return;
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
+  const err = $("#errbox");
+  if (err) err.style.display = "none";
+  $("#gen-input")?.focus();
+}
+
+function closeGen() {
+  if (!modal) return;
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+// also expose (so inner closures can call safely)
+window.openGen = openGen;
+window.closeGen = closeGen;
+
+document.getElementById("btn-open-modal")?.addEventListener("click", openGen);
+document.getElementById("gen-close")?.addEventListener("click", closeGen);
+document.getElementById("gen-cancel")?.addEventListener("click", closeGen);
+
 
   $$(".segbtn").forEach(b=>b.addEventListener('click', ()=>{
     $$(".segbtn").forEach(x=>x.classList.remove("active"));
@@ -64,8 +83,8 @@ $("#hero-try")?.addEventListener("click", () => {
     if(!active) return;
     const sop = sops.find(s=>s.id===active); if(!sop) return;
 
-    $("#sop-title").value   = sop.title   || "";
-    $("#sop-summary").value = sop.summary || "";
+    $("#sop-title")  && ($("#sop-title").value   = sop.title   || "");
+    $("#sop-summary")&& ($("#sop-summary").value = sop.summary || "");
 
     const ul = $("#steps-list"); if(!ul) return;
     ul.innerHTML = "";
@@ -612,10 +631,9 @@ document.getElementById('btn-generate-inline')?.addEventListener('click', async 
     if (!Array.isArray(sop.steps) || sop.steps.length === 0){
       const res = await generateFromTitleSummary(sop);
       if (res?.openedModal){
-        // Nothing in Title/Summary — open the modal to collect rough notes
-        if (typeof openGen === 'function') openGen();
-        else document.getElementById('btn-open-modal')?.click();
-      }
+  // Nothing in Title/Summary — open the modal to collect rough notes
+  window.openGen?.();
+}
       return;
     }
 
