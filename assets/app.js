@@ -623,9 +623,26 @@ document.getElementById('btn-generate-inline')?.addEventListener('click', async 
   }
 
   btn.addEventListener('click', async ()=>{
-    if (!active){ toast('Open a SOP first'); return; }
-    const sop = sops.find(s=>s.id===active);
-    if (!sop){ toast('No SOP found'); return; }
+    // If no SOP is open, create one from Title/Summary or open the modal
+if (!active){
+  const title   = (document.getElementById('sop-title')?.value || '').trim();
+  const summary = (document.getElementById('sop-summary')?.value || '').trim();
+
+  if (!title && !summary){
+    // nothing to work with — ask for rough notes
+    window.openGen?.();
+    return;
+  }
+
+  // seed a new empty SOP so we can generate steps into it
+  const newSop = { id: makeId(), title, summary, steps: [] };
+  sops.unshift(newSop);
+  active = newSop.id;
+  renderEditor(); // bind inputs to this SOP
+}
+
+const sop = sops.find(s=>s.id===active);
+if (!sop){ toast('No SOP found'); return; }
 
     // If NO steps yet: generate using Title/Summary, or open the modal if fields are empty
     if (!Array.isArray(sop.steps) || sop.steps.length === 0){
