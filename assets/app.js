@@ -564,46 +564,44 @@ document.getElementById('btn-generate-inline')?.addEventListener('click', async 
     renderEditor(); renderVersions(); toast('Duplicated');
   });
 
-  // ===== Auto Generate with AI / Enhance (hybrid) =====
-(function(){
+// ===== Auto Generate with AI / Enhance (hybrid) =====
+(function () {
   const btn = document.getElementById('btn-rewrite-all');
   if (!btn) return;
 
   const spinner = document.getElementById('enhance-status');
-  const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  async function fetchJSON(url, opts, retries=2){
-    for (let a=0; a<=retries; a++){
-      try{
+  async function fetchJSON(url, opts, retries = 2) {
+    for (let a = 0; a <= retries; a++) {
+      try {
         const res = await fetch(url, opts);
-        if (res.ok){
-          let data=null; try{ data = await res.json(); }catch{}
-          return { ok:true, data };
+        if (res.ok) {
+          let data = null;
+          try { data = await res.json(); } catch {}
+          return { ok: true, data };
         }
-        if (a < retries && (res.status===502 || res.status===504 || res.status===429)){
-          await sleep(600*(a+1)); continue;
+        if (a < retries && (res.status === 502 || res.status === 504 || res.status === 429)) {
+          await sleep(600 * (a + 1)); continue;
         }
-        let msg=""; try{ msg = (await res.json())?.error || ""; }catch{}
-        return { ok:false, error: msg || `HTTP ${res.status}` };
-      }catch(err){
-        if (a < retries){ await sleep(600*(a+1)); continue; }
-        return { ok:false, error: err.message || 'Network error' };
+        let msg = ""; try { msg = (await res.json())?.error || ""; } catch {}
+        return { ok: false, error: msg || `HTTP ${res.status}` };
+      } catch (err) {
+        if (a < retries) { await sleep(600 * (a + 1)); continue; }
+        return { ok: false, error: err.message || 'Network error' };
       }
     }
   }
 
   // Generate steps if none exist, using Title/Summary fields (no modal)
-  async function generateFromTitleSummary(sop){
+  async function generateFromTitleSummary(sop) {
     const title   = (document.getElementById('sop-title')?.value || '').trim();
     const summary = (document.getElementById('sop-summary')?.value || '').trim();
 
-    // If the user hasn't entered anything, fall back to the modal
     if (!title && !summary) return { openedModal: true };
 
-    // Build a simple raw input for your /generateSop function
     const raw = (title ? `Title: ${title}\n` : '') + (summary || 'Generate a standard SOP outline.');
 
-    // Update spinner label to “Generating…”
     if (spinner) {
       spinner.style.display = 'flex';
       const label = spinner.querySelector('span:last-child');
@@ -611,65 +609,51 @@ document.getElementById('btn-generate-inline')?.addEventListener('click', async 
     }
     setLoading(true, 'Generating…');
 
-    try{
+    try {
       const sopNew = await callGenerateAPI(raw, title || '');
-      // Update the current SOP in place
       sop.title   = title || sopNew.title || sop.title || 'Untitled';
       sop.summary = sopNew.summary || summary || sop.summary || '';
       sop.steps   = Array.isArray(sopNew.steps) ? sopNew.steps : [];
-
       renderEditor(); renderPreview(sop); renderJSON(sop);
       toast('Generated');
-      return { ok:true };
-    }catch(err){
+      return { ok: true };
+    } catch (err) {
       console.error(err);
       toast('Generate failed: ' + (err.message || 'Unknown error'));
-      return { ok:false };
-    }finally{
+      return { ok: false };
+    } finally {
       setLoading(false);
       if (spinner) {
         spinner.style.display = 'none';
         const label = spinner.querySelector('span:last-child');
-        if (label) label.textContent = 'Enhancing…'; // restore default text
+        if (label) label.textContent = 'Enhancing…';
       }
     }
   }
 
-btn.addEventListener('click', async ()=>{
-  // Ensure there is a current SOP; create one if the page is empty
-  let sop = active ? sops.find(s=>s.id===active) : null;
-  if (!sop){
-    sop = {
-      id: makeId(),
-      title:   (document.getElementById('sop-title')?.value || '').trim(),
-      summary: (document.getElementById('sop-summary')?.value || '').trim(),
-      steps: []
-    };
-    sops.unshift(sop);
-    active = sop.id;
-  }
-
-
-  // seed a new empty SOP so we can generate steps into it
-  const newSop = { id: makeId(), title, summary, steps: [] };
-  sops.unshift(newSop);
-  active = newSop.id;
-  renderEditor(); // bind inputs to this SOP
-}
-
-const sop = sops.find(s=>s.id===active);
-if (!sop){ toast('No SOP found'); return; }
+  btn.addEventListener('click', async () => {
+    // Ensure there is a current SOP
+    let sop = active ? sops.find(s => s.id === active) : null;
+    if (!sop) {
+      sop = {
+        id: makeId(),
+        title:   (document.getElementById('sop-title')?.value || '').trim(),
+        summary: (document.getElementById('sop-summary')?.value || '').trim(),
+        steps: []
+      };
+      sops.unshift(sop);
+      active = sop.id;
+      renderEditor();
+    }
 
     // If NO steps yet: generate using Title/Summary, or open the modal if fields are empty
-    if (!Array.isArray(sop.steps) || sop.steps.length === 0){
+    if (!Array.isArray(sop.steps) || sop.steps.length === 0) {
       const res = await generateFromTitleSummary(sop);
-      if (res && res.openedModal) {
-  if (window.openGen) window.openGen();
-}
+      if (res && res.openedModal) { if (window.openGen) window.openGen(); }
       return;
     }
 
-    // If steps exist: run the existing enhance flow
+    // Steps exist → enhance
     if (spinner) {
       spinner.style.display = 'flex';
       const label = spinner.querySelector('span:last-child');
@@ -677,12 +661,12 @@ if (!sop){ toast('No SOP found'); return; }
     }
     setLoading(true, 'Enhancing steps…');
 
-    try{
-      // Try batch endpoint
+    try {
+      // Try batch endpoint first
       const batch = await fetchJSON('/.netlify/functions/rewriteAll', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ steps: sop.steps, sopTitle: sop.title||'', sopSummary: sop.summary||'' })
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ steps: sop.steps, sopTitle: sop.title || '', sopSummary: sop.summary || '' })
       }, 1);
 
       let newSteps = null;
@@ -692,20 +676,20 @@ if (!sop){ toast('No SOP found'); return; }
       } else {
         // Fallback: per-step rewrite
         const out = [];
-        for (let i=0; i<sop.steps.length; i++){
-          const cur   = sop.steps[i];
-          const title = (typeof cur==='string' ? cur : (cur?.title||'')).trim();
-          if (!title){ out.push(cur); continue; }
+        for (let i = 0; i < sop.steps.length; i++) {
+          const cur = sop.steps[i];
+          const title = (typeof cur === 'string' ? cur : (cur?.title || '')).trim();
+          if (!title) { out.push(cur); continue; }
 
           const r = await fetchJSON('/.netlify/functions/rewriteStep', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ step:title, sopTitle: sop.title||'', sopSummary: sop.summary||'' })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ step: title, sopTitle: sop.title || '', sopSummary: sop.summary || '' })
           }, 2);
 
-          if (r.ok && r.data?.step){
+          if (r.ok && r.data?.step) {
             const s = r.data.step;
-            out.push(typeof s==='object' ? {
+            out.push(typeof s === 'object' ? {
               title:       s.title || title,
               details:     s.details || '',
               ownerRole:   s.ownerRole || '',
@@ -724,7 +708,7 @@ if (!sop){ toast('No SOP found'); return; }
       sop.steps = newSteps;
       renderEditor(); renderPreview(sop); renderJSON(sop);
       toast('Steps enhanced');
-    } catch(err){
+    } catch (err) {
       console.error(err);
       toast('Enhance failed: ' + (err.message || 'Unknown error'));
     } finally {
