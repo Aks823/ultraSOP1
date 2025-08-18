@@ -535,21 +535,23 @@
               <input id="sop-title" class="input" />
               <label class="lbl" for="sop-summary">Summary</label>
               <textarea id="sop-summary" class="textarea" rows="3"></textarea>
-              <!-- NEW: inline generator under Summary -->
-<div style="display:flex; justify-content:flex-end; gap:8px; margin:8px 0 4px">
-  <!-- UltraSOP Generate button (Uiverse base, recolored) -->
-<button class="cssbuttons-io-button" id="btn-generate-inline">
-  Generate SOP
-  <div class="icon">
-    <svg height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0 0h24v24H0z" fill="none"></path>
-      <path d="M16.172 11l-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2z"
-            fill="currentColor"></path>
-    </svg>
-  </div>
-</button>
+             
+              <!-- Actions under Summary -->
+              <div class="gen-actions">
+              <button class="btn btn-clear" id="btn-clear">Clear All</button>
 
-</div>
+              <!-- keep same id so existing JS works -->
+              <button class="cssbuttons-io-button" id="btn-generate-inline">
+              Generate SOP
+              <div class="icon" aria-hidden="true">
+                <svg height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M0 0h24v24H0z" fill="none"></path>
+                    <path d="M16.172 11l-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2z" fill="currentColor"></path>
+                </svg>
+              </div>
+            </button>
+          </div>
+
               <div class="lbl" style="margin-top:12px">Steps</div>
               <button class="btn" id="btn-add-step" style="margin:6px 0 8px">Add Step</button>
               <ul id="steps-list" class="steps"></ul>
