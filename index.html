@@ -249,83 +249,86 @@
     .tavatar img{ width:100%; height:100%; object-fit:cover; display:block; }
     #testimonials,.container.testimonials{ background:transparent!important; background-image:none!important; }
  
-    /* Premium “white pill + black outline + orange glow ring with moving glint” */
-.btn--gen{
-  --o:#FF7A1A;             /* orange glow */
-  --k:#0F172A;             /* near-black text/outline */
-  position:relative;
-  isolation:isolate;
-  background:#fff;
-  color:var(--k);
-  border:2px solid var(--k);       /* black outline */
-  border-radius:999px;
-  padding:10px 18px;
-  font-weight:800;
-  letter-spacing:.01em;
-  transition:transform .12s ease, box-shadow .12s ease;
-}
-.btn--gen span{ position:relative; z-index:2; }
-
-/* soft orange aura around the button */
-.btn--gen::before{
-  content:"";
-  position:absolute;
-  inset:-10px;                        /* sits just outside the outline */
-  border-radius:inherit;
-  background:
-    conic-gradient(from 0deg,
-      rgba(255,122,26,0) 0%,
-      rgba(255,122,26,.22) 10%,
-      rgba(255,122,26,0) 25%,
-      rgba(255,122,26,0) 60%,
-      rgba(255,122,26,.30) 75%,
-      rgba(255,122,26,0) 100%);
-  filter: blur(16px);
-  animation: gen-ring 6s linear infinite;
-  pointer-events:none;
-  z-index:0;
+   /* UltraSOP palette */
+:root{
+  --u-text: #0F172A;
+  --u-prim: #FF7A1A;       /* brand orange */
+  --u-prim-dark: #F36800;  /* deeper orange */
+  --u-prim-soft: #FFB47A;  /* soft orange */
+  --u-glow: rgba(255,122,26,.38);
+  --u-glow-strong: rgba(255,122,26,.55);
+  --grad-primary: linear-gradient(135deg,#FFD1A6 0%,#FF9A45 42%,#FF7A1A 70%,#F36800 100%);
 }
 
-/* moving “shine particle” that travels the edge */
-.btn--gen::after{
-  content:"";
-  position:absolute;
-  inset:-8px;
-  border-radius:inherit;
-  background:
-    conic-gradient(from 0deg,
-      rgba(255,255,255,0) 0 96%,
-      rgba(255,210,160,1) 98%,
-      rgba(255,255,255,0) 100%);      /* thin bright wedge */
-  filter: blur(2px) drop-shadow(0 0 10px rgba(255,122,26,.65));
-  animation: gen-glint 1.8s linear infinite;
-  pointer-events:none;
-  z-index:1;
-  /* keep just the outer ring visible */
-  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 8px), #fff calc(100% - 8px));
-          mask: radial-gradient(closest-side, transparent calc(100% - 8px), #fff calc(100% - 8px));
+/* From Uiverse.io by adamgiebl — recolored for UltraSOP */
+.cssbuttons-io-button{
+  background: var(--grad-primary);
+  color: var(--u-text);
+  font-family: inherit;
+  padding: 0.35em;
+  padding-left: 1.2em;
+  font-size: 17px;
+  font-weight: 800;
+  border-radius: 0.9em;
+  border: none;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  height: 2.8em;
+  padding-right: 3.3em;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 1.6em -0.6em var(--u-glow-strong),
+    0 10px 24px rgba(15,23,42,.10);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.cssbuttons-io-button:hover{
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 1.6em -0.6em var(--u-glow-strong),
+    0 14px 34px rgba(15,23,42,.14);
+}
+.cssbuttons-io-button:active{ transform: translateY(0); }
+.cssbuttons-io-button:focus-visible{
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(255,122,26,.35),
+    inset 0 0 1.6em -0.6em var(--u-glow-strong);
 }
 
-/* hover/active feedback */
-.btn--gen:hover{ transform:translateY(-1px); box-shadow:0 10px 26px rgba(15,23,42,.08); }
-.btn--gen:active{ transform:translateY(0); }
+/* trailing icon pill */
+.cssbuttons-io-button .icon{
+  background: #fff;
+  color: var(--u-prim);                /* arrow color */
+  margin-left: 1em;
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.2em;
+  width: 2.2em;
+  right: 0.3em;
+  border-radius: 0.7em;
+  box-shadow: 0.1em 0.1em 0.6em 0.2em var(--u-glow);
+  transition: all .30s;
+}
+.cssbuttons-io-button:hover .icon{ width: calc(100% - 0.6em); }
 
-/* keyboard focus */
-.btn--gen:focus-visible{
-  outline:none;
-  box-shadow:0 0 0 3px rgba(255,122,26,.35);
+.cssbuttons-io-button .icon svg{
+  width: 1.1em;
+  transition: transform .30s;
+}
+.cssbuttons-io-button:hover .icon svg{ transform: translateX(0.1em); }
+.cssbuttons-io-button:active .icon{ transform: scale(0.95); }
+
+/* optional disabled state */
+.cssbuttons-io-button:disabled{
+  opacity:.55; cursor:not-allowed; transform:none;
+  box-shadow: inset 0 0 1.2em -0.6em rgba(0,0,0,.08);
 }
 
-/* motion sensitivity */
-@media (prefers-reduced-motion: reduce){
-  .btn--gen::before,
-  .btn--gen::after{ animation:none; }
-}
-
-@keyframes gen-ring{ to{ transform:rotate(360deg); } }
-@keyframes gen-glint{ to{ transform:rotate(360deg); } }
-
-  
   </style>
 </head>
 <body>
@@ -517,7 +520,18 @@
               <textarea id="sop-summary" class="textarea" rows="3"></textarea>
               <!-- NEW: inline generator under Summary -->
 <div style="display:flex; justify-content:flex-end; gap:8px; margin:8px 0 4px">
-  <button class="btn btn--gen" id="btn-generate-inline"><span>Generate SOP</span></button>
+  <!-- UltraSOP Generate button (Uiverse base, recolored) -->
+<button class="cssbuttons-io-button" id="btn-generate-inline">
+  Generate SOP
+  <div class="icon">
+    <svg height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="none"></path>
+      <path d="M16.172 11l-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2z"
+            fill="currentColor"></path>
+    </svg>
+  </div>
+</button>
+
 </div>
               <div class="lbl" style="margin-top:12px">Steps</div>
               <button class="btn" id="btn-add-step" style="margin:6px 0 8px">Add Step</button>
