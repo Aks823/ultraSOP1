@@ -839,6 +839,29 @@
   </div>
 </div>
 
+  <!-- Auth (Sign in) modal -->
+<div class="modal" id="auth-modal" aria-hidden="true">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <div class="dialog-h">
+      <h3 id="auth-title" style="margin:0">Sign in to UltraSOP</h3>
+      <button class="btn" id="auth-close" aria-label="Close">✕</button>
+    </div>
+    <div class="dialog-b">
+      <p class="muted" style="margin:0 0 12px">
+        Choose a provider to continue. We’ll return you here after sign in.
+      </p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <button class="btn btn--cta" id="btn-auth-google" type="button">Continue with Google</button>
+        <button class="btn" id="btn-auth-github" type="button">Continue with GitHub</button>
+      </div>
+      <div class="err" id="auth-err" style="display:none; margin-top:12px"></div>
+    </div>
+    <div class="dialog-f">
+      <button class="btn" id="auth-cancel" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
   <div class="overlay" id="overlay"><div class="box"><span class="spin"></span><span id="overlay-text">Generating…</span></div></div>
   <div id="toast" class="toast"></div>
 
