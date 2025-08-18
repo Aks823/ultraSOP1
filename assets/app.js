@@ -622,17 +622,20 @@ document.getElementById('btn-generate-inline')?.addEventListener('click', async 
     }
   }
 
-  btn.addEventListener('click', async ()=>{
-    // If no SOP is open, create one from Title/Summary or open the modal
-if (!active){
-  const title   = (document.getElementById('sop-title')?.value || '').trim();
-  const summary = (document.getElementById('sop-summary')?.value || '').trim();
-
-  if (!title && !summary){
-    // nothing to work with — ask for rough notes
-    window.openGen?.();
-    return;
+btn.addEventListener('click', async ()=>{
+  // Ensure there is a current SOP; create one if the page is empty
+  let sop = active ? sops.find(s=>s.id===active) : null;
+  if (!sop){
+    sop = {
+      id: makeId(),
+      title:   (document.getElementById('sop-title')?.value || '').trim(),
+      summary: (document.getElementById('sop-summary')?.value || '').trim(),
+      steps: []
+    };
+    sops.unshift(sop);
+    active = sop.id;
   }
+
 
   // seed a new empty SOP so we can generate steps into it
   const newSop = { id: makeId(), title, summary, steps: [] };
@@ -850,129 +853,138 @@ sops = [];
 active = null;
 // leave fields empty; user can type Title/Summary and click "Generate SOP"
   
-  /* === How steps: measure line === */
+/* === How steps: measure line === */
 (function(){
-  const wrap = document.getElementById('how-steps'); if(!wrap) return;
-  const steps = Array.from(wrap.querySelectorAll('.hstep'));
+  try{
+    var wrap = document.getElementById('how-steps'); if(!wrap) return;
+    var steps = Array.prototype.slice.call(wrap.querySelectorAll('.hstep'));
 
-  function setActive(n){
-    steps.forEach((btn, i) => {
-      const on = i === n;
-      btn.classList.toggle('active', on);
-      btn.setAttribute('aria-current', on ? 'step' : 'false');
-    });
-  }
+    function setActive(n){
+      steps.forEach(function(btn, i){
+        var on = i === n;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-current', on ? 'step' : 'false');
+      });
+    }
 
-  let current = steps.findIndex(b => b.classList.contains('active'));
-  if (current < 0) current = 0; setActive(current);
+    var current = steps.findIndex(function(b){ return b.classList.contains('active'); });
+    if (current < 0) current = 0; setActive(current);
 
-  function measureRail(){
-    const firstDot = steps[0]?.querySelector('.dot');
-    const lastDot  = steps[steps.length-1]?.querySelector('.dot');
-    if(!firstDot || !lastDot) return;
-    const host = wrap; const hostRect = host.getBoundingClientRect();
-    const f = firstDot.getBoundingClientRect(); const l = lastDot.getBoundingClientRect();
-    const top    = Math.round((f.top + f.height/2) - hostRect.top);
-    const bottom = Math.round(hostRect.bottom - (l.top + l.height/2));
-    host.style.setProperty('--lineTop', `${top}px`);
-    host.style.setProperty('--lineBottom', `${bottom}px`);
-  }
+    function measureRail(){
+      var firstDot = steps[0] && steps[0].querySelector('.dot');
+      var lastDot  = steps[steps.length-1] && steps[steps.length-1].querySelector('.dot');
+      if(!firstDot || !lastDot) return;
+      var host = wrap; var hostRect = host.getBoundingClientRect();
+      var f = firstDot.getBoundingClientRect(); var l = lastDot.getBoundingClientRect();
+      var top    = Math.round((f.top + f.height/2) - hostRect.top);
+      var bottom = Math.round(hostRect.bottom - (l.top + l.height/2));
+      host.style.setProperty('--lineTop', top + 'px');
+      host.style.setProperty('--lineBottom', bottom + 'px');
+    }
 
-  window.addEventListener('load', measureRail);
-  window.addEventListener('resize', measureRail);
-  setTimeout(measureRail, 0);
+    window.addEventListener('load', measureRail);
+    window.addEventListener('resize', measureRail);
+    setTimeout(measureRail, 0);
+  }catch(e){ console.error('how-steps init error:', e); }
 })();
 
 /* === How steps: swap GIF on click === */
 (function(){
-  const wrap = document.getElementById('how-steps'); if(!wrap) return;
-  const buttons = wrap.querySelectorAll('.hstep');
-  const shot = document.querySelector('.hshot');
-  const img  = shot ? shot.querySelector('img') : null;
-  const ph   = shot ? shot.querySelector('.ph') : null;
+  try{
+    var wrap = document.getElementById('how-steps'); if(!wrap) return;
+    var buttons = wrap.querySelectorAll('.hstep');
+    var shot = document.querySelector('.hshot');
+    var img  = shot ? shot.querySelector('img') : null;
+    var ph   = shot ? shot.querySelector('.ph') : null;
 
-  function showPlaceholder(){ if(!img) return; img.style.display='none'; if(ph) ph.style.display='grid'; }
-  function showSrc(src){
-    if(!img) return; if(!src){ showPlaceholder(); return; }
-    img.onload  = ()=>{ img.style.display='block'; if(ph) ph.style.display='none'; };
-    img.onerror = showPlaceholder;
-    img.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
-  }
-
-  buttons.forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      buttons.forEach(b=>{ b.classList.remove('active'); b.removeAttribute('aria-current'); });
-      btn.classList.add('active'); btn.setAttribute('aria-current','step');
-      showSrc(btn.dataset.gif || '');
-    });
-  });
-
-  const activeBtn = wrap.querySelector('.hstep.active');
-  if(activeBtn) showSrc(activeBtn.dataset.gif || '');
-})();
-  /* === Pricing period toggle === */
-(function(){
-  const tgl  = document.getElementById('billToggle');
-  const grid = document.getElementById('pricingGrid');
-  if(!tgl || !grid) return;
-
-  function setPeriod(isAnnual){
-    grid.querySelectorAll('.pcard').forEach(card=>{
-      const m = parseFloat(card.getAttribute('data-month')||'0');
-      const y = parseFloat(card.getAttribute('data-year') || m);
-      const amtEl = card.querySelector('.amt');
-      const perEl = card.querySelector('.per');
-      const val = isAnnual ? y : m;
-      if(amtEl) amtEl.textContent = '$' + (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1));
-      if(perEl) perEl.textContent = isAnnual ? '/mo (billed yearly)' : '/mo';
-    });
-  }
-
-  setPeriod(false);
-  tgl.addEventListener('change', ()=> setPeriod(tgl.checked));
-})();
-  /* === FAQ accordion === */
-(function(){
-  const faq = document.querySelector('.faq'); if(!faq) return;
-  const btns = faq.querySelectorAll('.acc-btn');
-
-  function closeOthers(current){
-    btns.forEach(btn => {
-      if(btn !== current){
-        btn.setAttribute('aria-expanded','false');
-        btn.parentElement.classList.remove('open');
-        const p = btn.nextElementSibling;
-        if (p) p.style.maxHeight = 0;
-      }
-    });
-  }
-
-  btns.forEach(btn => {
-    const panel = btn.nextElementSibling;
-    if(btn.getAttribute('aria-expanded') === 'true'){
-      btn.parentElement.classList.add('open');
-      if(panel) panel.style.maxHeight = panel.scrollHeight + 'px';
+    function showPlaceholder(){ if(!img) return; img.style.display='none'; if(ph) ph.style.display='grid'; }
+    function showSrc(src){
+      if(!img) return; if(!src){ showPlaceholder(); return; }
+      img.onload  = function(){ img.style.display='block'; if(ph) ph.style.display='none'; };
+      img.onerror = showPlaceholder;
+      img.src = src + (src.indexOf('?')>-1 ? '&' : '?') + 'v=' + Date.now();
     }
-    btn.addEventListener('click', () => {
-      const expanded = btn.getAttribute('aria-expanded') === 'true';
-      if(expanded){
-        btn.setAttribute('aria-expanded','false');
-        btn.parentElement.classList.remove('open');
-        if(panel) panel.style.maxHeight = 0;
-      }else{
-        closeOthers(btn);
-        btn.setAttribute('aria-expanded','true');
+
+    buttons.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        buttons.forEach(function(b){ b.classList.remove('active'); b.removeAttribute('aria-current'); });
+        btn.classList.add('active'); btn.setAttribute('aria-current','step');
+        showSrc(btn.getAttribute('data-gif') || '');
+      });
+    });
+
+    var activeBtn = wrap.querySelector('.hstep.active');
+    if(activeBtn) showSrc(activeBtn.getAttribute('data-gif') || '');
+  }catch(e){ console.error('how-steps gif error:', e); }
+})();
+
+/* === Pricing period toggle === */
+(function(){
+  try{
+    var tgl  = document.getElementById('billToggle');
+    var grid = document.getElementById('pricingGrid');
+    if(!tgl || !grid) return;
+
+    function setPeriod(isAnnual){
+      grid.querySelectorAll('.pcard').forEach(function(card){
+        var m = parseFloat(card.getAttribute('data-month')||'0');
+        var y = parseFloat(card.getAttribute('data-year') || m);
+        var amtEl = card.querySelector('.amt');
+        var perEl = card.querySelector('.per');
+        var val = isAnnual ? y : m;
+        if(amtEl) amtEl.textContent = '$' + (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1));
+        if(perEl) perEl.textContent = isAnnual ? '/mo (billed yearly)' : '/mo';
+      });
+    }
+
+    setPeriod(false);
+    tgl.addEventListener('change', function(){ setPeriod(tgl.checked); });
+  }catch(e){ console.error('pricing toggle error:', e); }
+})();
+
+/* === FAQ accordion === */
+(function(){
+  try{
+    var faq = document.querySelector('.faq'); if(!faq) return;
+    var btns = faq.querySelectorAll('.acc-btn');
+
+    function closeOthers(current){
+      btns.forEach(function(btn){
+        if(btn !== current){
+          btn.setAttribute('aria-expanded','false');
+          btn.parentElement.classList.remove('open');
+          var p = btn.nextElementSibling;
+          if (p) p.style.maxHeight = 0;
+        }
+      });
+    }
+
+    btns.forEach(function(btn){
+      var panel = btn.nextElementSibling;
+      if(btn.getAttribute('aria-expanded') === 'true'){
         btn.parentElement.classList.add('open');
         if(panel) panel.style.maxHeight = panel.scrollHeight + 'px';
       }
+      btn.addEventListener('click', function(){
+        var expanded = btn.getAttribute('aria-expanded') === 'true';
+        if(expanded){
+          btn.setAttribute('aria-expanded','false');
+          btn.parentElement.classList.remove('open');
+          if(panel) panel.style.maxHeight = 0;
+        }else{
+          closeOthers(btn);
+          btn.setAttribute('aria-expanded','true');
+          btn.parentElement.classList.add('open');
+          if(panel) panel.style.maxHeight = panel.scrollHeight + 'px';
+        }
+      });
     });
-  });
 
-  window.addEventListener('resize', () => {
-    faq.querySelectorAll('.acc-btn[aria-expanded="true"]').forEach(btn => {
-      const p = btn.nextElementSibling;
-      if (p) p.style.maxHeight = p.scrollHeight + 'px';
+    window.addEventListener('resize', function(){
+      faq.querySelectorAll('.acc-btn[aria-expanded="true"]').forEach(function(btn){
+        var p = btn.nextElementSibling;
+        if (p) p.style.maxHeight = p.scrollHeight + 'px';
+      });
     });
-  });
-})();
+  }catch(e){ console.error('faq init error:', e); }
 })();
