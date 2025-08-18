@@ -9,7 +9,16 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 (() => {
   'use strict';
-  
+
+  // --- Supabase client (v2) ---
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SB_URL  = (window.ENV && window.ENV.SUPABASE_URL) || '';
+const SB_ANON = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || '';
+export const supabase = (SB_URL && SB_ANON)
+  ? createClient(SB_URL, SB_ANON, { auth: { persistSession: true, storage: window.localStorage }})
+  : null;
+
     // Supabase smoke test — should log "OK"; session will be null if not signed in.
   supabase.auth.getSession()
     .then(({ data, error }) => {
@@ -34,6 +43,74 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const t  = $("#overlay-text"); if (t) t.textContent = txt || "Working…";
     const btn = $("#gen-run"); if (btn) btn.disabled = !!on;
   };
+
+  // --- Supabase helpers ---
+async function getUser(){
+  if (!supabase) return null;
+  const { data: { user } } = await supabase.auth.getUser();
+  return user || null;
+}
+async function requireAuth(){
+  const u = await getUser();
+  if (!u) toast('Please sign in to save');
+  return u;
+}
+
+// Create/update a row in public.sops and return its id
+async function upsertSopRow(sop){
+  if (!supabase) return null;
+  const user = await requireAuth(); if (!user) return null;
+
+  const row = {
+    id: sop._row_id || undefined,     // keep DB id on the SOP object
+    user_id: user.id,
+    title:   sop.title   || '',
+    summary: sop.summary || '',
+    steps:   sop.steps   || []
+  };
+
+  if (!sop._row_id){
+    const { data, error } = await supabase.from('sops').insert(row).select('id').single();
+    if (error) throw error;
+    sop._row_id = data.id;
+  } else {
+    const { error } = await supabase.from('sops').update(row).eq('id', sop._row_id);
+    if (error) throw error;
+  }
+  return sop._row_id;
+}
+
+// Insert a version in public.sop_versions and return the version number
+async function insertVersionRow(sop, notes){
+  if (!supabase) return null;
+  const user = await requireAuth(); if (!user) return null;
+
+  const sop_id = await upsertSopRow(sop);
+
+  // find last version number
+  let nextN = 1;
+  const { data:last } = await supabase
+    .from('sop_versions')
+    .select('n')
+    .eq('sop_id', sop_id)
+    .order('n', { ascending:false })
+    .limit(1)
+    .maybeSingle();
+  if (last && typeof last.n === 'number') nextN = last.n + 1;
+
+  const payload = {
+    sop_id,
+    user_id: user.id,
+    n: nextN,
+    title:   sop.title   || '',
+    summary: sop.summary || '',
+    steps:   sop.steps   || [],
+    notes:   notes || ''
+  };
+  const { error } = await supabase.from('sop_versions').insert(payload);
+  if (error) throw error;
+  return nextN;
+}
 
   // ===== Supabase client (reads values we set on window in index.html) =====
 const supa = (window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY)
