@@ -248,61 +248,83 @@
     .tavatar{ width:36px; height:36px; flex:0 0 36px; border-radius:50%; overflow:hidden; background:#FFE6D4; display:grid; place-items:center; font-weight:700; color:#FF7A1A;}
     .tavatar img{ width:100%; height:100%; object-fit:cover; display:block; }
     #testimonials,.container.testimonials{ background:transparent!important; background-image:none!important; }
-  /* Animated “orange stroke + moving glow” button */
+ 
+    /* Premium “white pill + black outline + orange glow ring with moving glint” */
 .btn--gen{
-  --o: var(--brand, #FF7A1A);
-  position: relative;
-  isolation: isolate;             /* keeps the glow layered correctly */
-  background: #fff;               /* white background */
-  color: var(--o);                /* orange text */
-  border: 2px solid var(--o);     /* orange stroke */
-  border-radius: 999px;
-  padding: 10px 16px;
-  font-weight: 700;
-  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  --o:#FF7A1A;             /* orange glow */
+  --k:#0F172A;             /* near-black text/outline */
+  position:relative;
+  isolation:isolate;
+  background:#fff;
+  color:var(--k);
+  border:2px solid var(--k);       /* black outline */
+  border-radius:999px;
+  padding:10px 18px;
+  font-weight:800;
+  letter-spacing:.01em;
+  transition:transform .12s ease, box-shadow .12s ease;
 }
+.btn--gen span{ position:relative; z-index:2; }
 
-.btn--gen span{ position: relative; z-index: 2; }
-
-/* moving glow ring */
+/* soft orange aura around the button */
 .btn--gen::before{
   content:"";
   position:absolute;
-  inset:-6px;                     /* slightly outside the button */
-  border-radius: inherit;
+  inset:-10px;                        /* sits just outside the outline */
+  border-radius:inherit;
   background:
-    conic-gradient(
-      from 0deg,
+    conic-gradient(from 0deg,
       rgba(255,122,26,0) 0%,
-      rgba(255,122,26,.28) 12%,
-      rgba(255,122,26,0) 36%,
-      rgba(255,122,26,.32) 60%,
-      rgba(255,122,26,0) 85%
-    );
-  filter: blur(10px);
-  animation: gen-glow-spin 3s linear infinite;
-  pointer-events: none;
-  z-index: 1;
+      rgba(255,122,26,.22) 10%,
+      rgba(255,122,26,0) 25%,
+      rgba(255,122,26,0) 60%,
+      rgba(255,122,26,.30) 75%,
+      rgba(255,122,26,0) 100%);
+  filter: blur(16px);
+  animation: gen-ring 6s linear infinite;
+  pointer-events:none;
+  z-index:0;
 }
 
-/* subtle hover/active feedback */
-.btn--gen:hover{ transform: translateY(-1px); box-shadow: 0 10px 24px rgba(255,122,26,.18); }
-.btn--gen:active{ transform: translateY(0); }
+/* moving “shine particle” that travels the edge */
+.btn--gen::after{
+  content:"";
+  position:absolute;
+  inset:-8px;
+  border-radius:inherit;
+  background:
+    conic-gradient(from 0deg,
+      rgba(255,255,255,0) 0 96%,
+      rgba(255,210,160,1) 98%,
+      rgba(255,255,255,0) 100%);      /* thin bright wedge */
+  filter: blur(2px) drop-shadow(0 0 10px rgba(255,122,26,.65));
+  animation: gen-glint 1.8s linear infinite;
+  pointer-events:none;
+  z-index:1;
+  /* keep just the outer ring visible */
+  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 8px), #fff calc(100% - 8px));
+          mask: radial-gradient(closest-side, transparent calc(100% - 8px), #fff calc(100% - 8px));
+}
 
-/* Accessible focus state */
+/* hover/active feedback */
+.btn--gen:hover{ transform:translateY(-1px); box-shadow:0 10px 26px rgba(15,23,42,.08); }
+.btn--gen:active{ transform:translateY(0); }
+
+/* keyboard focus */
 .btn--gen:focus-visible{
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(255,122,26,.35);
+  outline:none;
+  box-shadow:0 0 0 3px rgba(255,122,26,.35);
 }
 
-/* turn off animation for motion-sensitive users */
+/* motion sensitivity */
 @media (prefers-reduced-motion: reduce){
-  .btn--gen::before{ animation: none; }
+  .btn--gen::before,
+  .btn--gen::after{ animation:none; }
 }
 
-@keyframes gen-glow-spin{
-  to { transform: rotate(360deg); }
-}
+@keyframes gen-ring{ to{ transform:rotate(360deg); } }
+@keyframes gen-glint{ to{ transform:rotate(360deg); } }
+
   
   </style>
 </head>
