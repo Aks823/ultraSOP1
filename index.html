@@ -248,6 +248,62 @@
     .tavatar{ width:36px; height:36px; flex:0 0 36px; border-radius:50%; overflow:hidden; background:#FFE6D4; display:grid; place-items:center; font-weight:700; color:#FF7A1A;}
     .tavatar img{ width:100%; height:100%; object-fit:cover; display:block; }
     #testimonials,.container.testimonials{ background:transparent!important; background-image:none!important; }
+  /* Animated “orange stroke + moving glow” button */
+.btn--gen{
+  --o: var(--brand, #FF7A1A);
+  position: relative;
+  isolation: isolate;             /* keeps the glow layered correctly */
+  background: #fff;               /* white background */
+  color: var(--o);                /* orange text */
+  border: 2px solid var(--o);     /* orange stroke */
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.btn--gen span{ position: relative; z-index: 2; }
+
+/* moving glow ring */
+.btn--gen::before{
+  content:"";
+  position:absolute;
+  inset:-6px;                     /* slightly outside the button */
+  border-radius: inherit;
+  background:
+    conic-gradient(
+      from 0deg,
+      rgba(255,122,26,0) 0%,
+      rgba(255,122,26,.28) 12%,
+      rgba(255,122,26,0) 36%,
+      rgba(255,122,26,.32) 60%,
+      rgba(255,122,26,0) 85%
+    );
+  filter: blur(10px);
+  animation: gen-glow-spin 3s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* subtle hover/active feedback */
+.btn--gen:hover{ transform: translateY(-1px); box-shadow: 0 10px 24px rgba(255,122,26,.18); }
+.btn--gen:active{ transform: translateY(0); }
+
+/* Accessible focus state */
+.btn--gen:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255,122,26,.35);
+}
+
+/* turn off animation for motion-sensitive users */
+@media (prefers-reduced-motion: reduce){
+  .btn--gen::before{ animation: none; }
+}
+
+@keyframes gen-glow-spin{
+  to { transform: rotate(360deg); }
+}
+  
   </style>
 </head>
 <body>
@@ -427,7 +483,6 @@
           <div class="toolbar">
             <button class="btn" id="btn-save">Save Version</button>
             <button class="btn" id="btn-dup">Duplicate</button>
-            <button class="btn" id="btn-rewrite-all">✨Auto Generate with AI</button>
           </div>
         </div>
 
@@ -440,7 +495,7 @@
               <textarea id="sop-summary" class="textarea" rows="3"></textarea>
               <!-- NEW: inline generator under Summary -->
 <div style="display:flex; justify-content:flex-end; gap:8px; margin:8px 0 4px">
-  <button class="btn btn--cta" id="btn-generate-inline">Generate SOP</button>
+  <button class="btn btn--gen" id="btn-generate-inline"><span>Generate SOP</span></button>
 </div>
               <div class="lbl" style="margin-top:12px">Steps</div>
               <button class="btn" id="btn-add-step" style="margin:6px 0 8px">Add Step</button>
