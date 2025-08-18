@@ -68,6 +68,59 @@
   // ===== State =====
   let sops   = [];
   let active = null;
+  /* === Clear All modal logic === */
+let _clearBusy = false;
+
+function openClear(){
+  const m = document.getElementById('clear-modal'); if(!m) return;
+  m.classList.add('show');
+  m.setAttribute('aria-hidden','false');
+  // focus the confirm for quick keyboard action
+  setTimeout(()=>document.getElementById('clear-confirm')?.focus(), 20);
+}
+function closeClear(){
+  const m = document.getElementById('clear-modal'); if(!m) return;
+  m.classList.remove('show');
+  m.setAttribute('aria-hidden','true');
+}
+
+function clearAllNow(){
+  // reset app state
+  sops = [];
+  active = null;
+
+  // clear UI fields
+  const t = document.getElementById('sop-title');    if (t) t.value = '';
+  const s = document.getElementById('sop-summary');  if (s) s.value = '';
+  const ul= document.getElementById('steps-list');   if (ul) ul.innerHTML = '';
+  const pv= document.getElementById('preview');      if (pv) pv.innerHTML = '';
+  const jb= document.getElementById('jsonbox');      if (jb) jb.textContent = '';
+  const vl= document.getElementById('versions-list');if (vl) vl.innerHTML = '';
+
+  toast('Cleared');
+}
+
+(function(){
+  const btnOpen = document.getElementById('btn-clear');
+  const btnX    = document.getElementById('clear-close');
+  const btnCancel = document.getElementById('clear-cancel');
+  const btnYes  = document.getElementById('clear-confirm');
+
+  if (btnOpen)   btnOpen.addEventListener('click', openClear);
+  if (btnX)      btnX.addEventListener('click', closeClear);
+  if (btnCancel) btnCancel.addEventListener('click', closeClear);
+
+  if (btnYes) btnYes.addEventListener('click', ()=>{
+    if (_clearBusy) return;               // single-click guard
+    _clearBusy = true;
+    try{
+      clearAllNow();
+      closeClear();
+    } finally {
+      _clearBusy = false;
+    }
+  });
+})();
 
   // ===== Rendering =====
   function renderEditor(){
