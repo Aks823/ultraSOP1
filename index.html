@@ -841,6 +841,16 @@
 
   <div class="overlay" id="overlay"><div class="box"><span class="spin"></span><span id="overlay-text">Generating…</span></div></div>
   <div id="toast" class="toast"></div>
+
+  <!-- Supabase JS (global UMD build) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Your Supabase config available to app.js -->
+<script>
+  window.SUPABASE_URL = "https://ngtbivfiqekbyypedkuz.supabase.co";        // e.g. https://xxxx.supabase.co
+  window.SUPABASE_ANON_KEY = "sb_publishable_wM0xuQ5O3OUtDOMo1sPcZg_brujOuzQ"; // from API Keys > Publishable key
+</script>
+
 <script type="module" src="/assets/app.js?v=build-2025-01-18-03"></script>
 </body>
 </html>
