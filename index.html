@@ -12,7 +12,14 @@
 
   <!-- jsPDF for the Download PDF button -->
   <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-
+<!-- Import map so browser knows where to load @supabase/supabase-js from -->
+<script type="importmap">
+{
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2?bundle"
+  }
+}
+</script>
   <style>
     :root{
       --orange:#FF7A1A; --orange-100:#FFF3E9; --orange-200:#FFE5D1;
@@ -834,6 +841,6 @@
 
   <div class="overlay" id="overlay"><div class="box"><span class="spin"></span><span id="overlay-text">Generating…</span></div></div>
   <div id="toast" class="toast"></div>
-<script defer src="/assets/app.js?v=build-2025-01-18-03"></script>
+<script type="module" src="/assets/app.js?v=build-2025-01-18-03"></script>
 </body>
 </html>
