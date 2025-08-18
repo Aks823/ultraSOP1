@@ -110,6 +110,30 @@
           '<button class="btn" data-rm="'+i+'">✕</button>' +
         '</div>';
 
+      // Clear All – wipes title, summary, and all steps of the current SOP
+document.getElementById('btn-clear')?.addEventListener('click', () => {
+  // guard + confirm
+  if (!window.confirm('Clear title, summary, and all steps?')) return;
+
+  // ensure there's a SOP to clear
+  let sop = active ? sops.find(s => s.id === active) : null;
+  if (!sop) {
+    sop = { id: makeId(), title: '', summary: '', steps: [] };
+    sops.unshift(sop);
+    active = sop.id;
+  } else {
+    sop.title = '';
+    sop.summary = '';
+    sop.steps = [];
+  }
+
+  renderEditor();            // rebind inputs & redraw
+  renderPreview(sop);
+  renderJSON(sop);
+  document.getElementById('sop-title')?.focus();
+  toast('Cleared');
+});
+
       // Pre-fill fields
       if (isObj) {
         const ta = li.querySelector('.step-details'); if (st.details && ta){ ta.style.display = "block"; ta.value = st.details; }
