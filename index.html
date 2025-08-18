@@ -28,6 +28,16 @@
     .navlinks{display:flex;gap:18px;color:#374151}
     .btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:999px;padding:10px 14px;cursor:pointer}
     .btn--cta{background:var(--orange);border-color:var(--orange);color:#111827;box-shadow:0 8px 24px rgba(255,122,26,.35)}
+    /* actions row under Summary */
+.gen-actions{display:flex;justify-content:flex-end;gap:8px;margin:8px 0 4px}
+
+/* subtle danger button */
+.btn--danger{
+  background:#fff;
+  border:1px solid #fecaca;
+  color:#991b1b;
+}
+.btn--danger:hover{ background:#fef2f2; }
     .container{max-width:1200px;margin:0 auto;padding:0 20px}
     .hero{padding:56px 0 24px}
     .hero h1{font-size:44px;line-height:1.1;margin:0 0 12px}
@@ -803,37 +813,25 @@
     </div>
   </footer>
 
-  <!-- Modal + overlay + toast -->
-  <div class="modal" id="gen-modal" aria-hidden="true">
-    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="gen-title">
-      <div class="dialog-h">
-        <h3 id="gen-title" style="margin:0">Generate SOP</h3>
-        <button class="btn" id="gen-close" aria-label="Close">✕</button>
-      </div>
-      <div class="dialog-b">
-        <div class="seg">
-          <button class="segbtn active" data-panel="text">Text</button>
-          <button class="segbtn" data-panel="audio">Audio (coming soon)</button>
-        </div>
-        <div id="panel-text">
-          <label class="lbl" for="gen-input">Paste rough notes</label>
-          <textarea id="gen-input" class="textarea" rows="10" placeholder="Title: ...&#10;1) ...&#10;2) ...&#10;3) ..."></textarea>
-          <div class="muted" style="font-size:12px;margin-top:6px">Tip: start with a Title line and 5–9 short steps for best results.</div>
-          <div style="margin-top:8px"><button class="btn" id="btn-sample">Try sample</button></div>
-          <label class="lbl" for="gen-title-in" style="margin-top:10px">Optional: Override title</label>
-          <input id="gen-title-in" class="input" placeholder="Leave empty to auto-detect" />
-          <div class="err" id="errbox" style="display:none"></div>
-        </div>
-        <div id="panel-audio" style="display:none">
-          <p class="muted">Recording + Whisper transcription will land here soon. For now, use the <strong>Text</strong> tab.</p>
-        </div>
-      </div>
-      <div class="dialog-f">
-        <button class="btn" id="gen-cancel">Cancel</button>
-        <button class="btn btn--cta" id="gen-run"><span class="label">Generate</span></button>
-      </div>
+<!-- Clear All modal -->
+<div class="modal" id="clear-modal" aria-hidden="true">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="clear-title">
+    <div class="dialog-h">
+      <h3 id="clear-title" style="margin:0">Clear everything?</h3>
+      <button class="btn" id="clear-close" aria-label="Close">✕</button>
+    </div>
+    <div class="dialog-b">
+      <p class="muted" style="margin:0">
+        This will reset <strong>Title</strong>, <strong>Summary</strong>, and <strong>all Steps</strong>.
+        You can start fresh or pick a template again.
+      </p>
+    </div>
+    <div class="dialog-f">
+      <button class="btn" id="clear-cancel" type="button">Cancel</button>
+      <button class="btn btn--danger" id="clear-confirm" type="button">Yes, clear all</button>
     </div>
   </div>
+</div>
 
   <div class="overlay" id="overlay"><div class="box"><span class="spin"></span><span id="overlay-text">Generating…</span></div></div>
   <div id="toast" class="toast"></div>
