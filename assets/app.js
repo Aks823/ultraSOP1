@@ -35,6 +35,96 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const btn = $("#gen-run"); if (btn) btn.disabled = !!on;
   };
 
+  // ===== Supabase client (reads values we set on window in index.html) =====
+const supa = (window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY)
+  ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
+  : null;
+
+if (!supa) { console.warn('Supabase not available yet. Check index.html tags.'); }
+
+// Keep the current session around for UI toggles
+let _session = null;
+
+// Small helper to show/hide the auth modal
+function openAuth(){
+  const m = document.getElementById('auth-modal'); if (!m) return;
+  document.getElementById('auth-err')?.style && (document.getElementById('auth-err').style.display='none');
+  m.classList.add('show'); m.setAttribute('aria-hidden','false');
+  setTimeout(()=>document.getElementById('btn-auth-google')?.focus(), 20);
+}
+function closeAuth(){
+  const m = document.getElementById('auth-modal'); if (!m) return;
+  m.classList.remove('show'); m.setAttribute('aria-hidden','true');
+}
+
+// Update the top-right button text/behavior based on auth state
+async function updateAuthUI(session){
+  _session = session || null;
+  const btn = document.getElementById('nav-signin');
+  if (!btn) return;
+
+  if (_session){
+    // Signed in
+    btn.textContent = 'Sign out';
+    btn.onclick = async () => {
+      try { await supa.auth.signOut(); } catch(e) {}
+    };
+  } else {
+    // Signed out
+    btn.textContent = 'Sign in';
+    btn.onclick = () => openAuth();
+  }
+}
+
+// Bind modal buttons
+(function bindAuthModal(){
+  document.getElementById('auth-close')?.addEventListener('click', closeAuth);
+  document.getElementById('auth-cancel')?.addEventListener('click', closeAuth);
+
+  // OAuth buttons (will work after you enable the providers in Supabase — that’s Step F.3)
+  document.getElementById('btn-auth-google')?.addEventListener('click', async () => {
+    if (!supa) return;
+    try{
+      const { error } = await supa.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      });
+      if (error) throw error;
+      // Supabase will handle the redirect. We close for now.
+      closeAuth();
+    }catch(err){
+      const box = document.getElementById('auth-err');
+      if (box){ box.style.display='block'; box.textContent = 'Google sign-in failed: ' + (err.message || 'Unknown'); }
+    }
+  });
+
+  document.getElementById('btn-auth-github')?.addEventListener('click', async () => {
+    if (!supa) return;
+    try{
+      const { error } = await supa.auth.signInWithOAuth({
+        provider: 'github',
+        options: { redirectTo: window.location.origin }
+      });
+      if (error) throw error;
+      closeAuth();
+    }catch(err){
+      const box = document.getElementById('auth-err');
+      if (box){ box.style.display='block'; box.textContent = 'GitHub sign-in failed: ' + (err.message || 'Unknown'); }
+    }
+  });
+})();
+
+// Initialize session + listen for changes
+(async () => {
+  try{
+    const { data } = await supa?.auth.getSession() || {};
+    await updateAuthUI(data?.session || null);
+    supa?.auth.onAuthStateChange((_evt, sess) => updateAuthUI(sess));
+  }catch(e){
+    console.warn('Auth init error', e);
+  }
+})();
+
   // Footer year
   const yearEl = $("#year"); if (yearEl) yearEl.textContent = new Date().getFullYear();
 
