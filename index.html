@@ -425,7 +425,6 @@
         <div class="topbar">
           <input class="search" placeholder="Search SOPs…" />
           <div class="toolbar">
-            <button class="btn btn--cta" id="btn-open-modal">Generate SOP</button>
             <button class="btn" id="btn-save">Save Version</button>
             <button class="btn" id="btn-dup">Duplicate</button>
             <button class="btn" id="btn-rewrite-all">✨Auto Generate with AI</button>
@@ -439,6 +438,10 @@
               <input id="sop-title" class="input" />
               <label class="lbl" for="sop-summary">Summary</label>
               <textarea id="sop-summary" class="textarea" rows="3"></textarea>
+              <!-- NEW: inline generator under Summary -->
+<div style="display:flex; justify-content:flex-end; gap:8px; margin:8px 0 4px">
+  <button class="btn btn--cta" id="btn-generate-inline">Generate SOP</button>
+</div>
               <div class="lbl" style="margin-top:12px">Steps</div>
               <button class="btn" id="btn-add-step" style="margin:6px 0 8px">Add Step</button>
               <ul id="steps-list" class="steps"></ul>
