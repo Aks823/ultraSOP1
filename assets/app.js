@@ -1,6 +1,24 @@
 // /assets/app.js
+import { createClient } from '@supabase/supabase-js';
+
+// --- Supabase client (use the values you saved in 1.3) ---
+const SUPABASE_URL = 'https://ngtbivfiqekbyypedkuz.supabase.co';      // <-- replace
+const SUPABASE_ANON_KEY = 'sb_publishable_wM0xuQ5O3OUtDOMo1sPcZg_brujOuzQ';   // <-- replace
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 (() => {
   'use strict';
+  
+    // Supabase smoke test — should log "OK"; session will be null if not signed in.
+  supabase.auth.getSession()
+    .then(({ data, error }) => {
+      if (error) {
+        console.error('[Supabase] error:', error);
+      } else {
+        console.log('[Supabase] OK, session:', data.session);
+      }
+    });
 
   // ===== Helpers =====
   const $  = (s) => document.querySelector(s);
