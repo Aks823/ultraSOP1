@@ -896,29 +896,33 @@ $("#versions-list")?.addEventListener("click", (e) => {
     list.innerHTML = picks.map(k => `<button class="qtpl-btn" data-template="${k}">${TEMPLATE_LIBRARY[k].title}</button>`).join('');
   })();
 
-    async function renderMySops(){
+async function renderMySops(){
   const box = document.getElementById('my-sops'); if (!box) return;
   box.innerHTML = '<div class="muted">Loading…</div>';
+
   if (!supabase){ box.innerHTML = '<div class="muted">Not configured</div>'; return; }
 
-  const { data:{ user } } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user){ box.innerHTML = '<div class="muted">Sign in to see your SOPs</div>'; return; }
 
   const { data, error } = await supabase
     .from('sops')
     .select('id, title, summary, updated_at')
+    .eq('user_id', user.id)               // only this user’s rows
     .order('updated_at', { ascending:false })
     .limit(30);
 
   if (error){ console.warn(error); box.innerHTML = '<div class="muted">Could not load</div>'; return; }
-  if (!data || !data.length){ box.innerHTML = '<div class="muted">No SOPs yet</div>'; return; }
+  if (!data || data.length === 0){ box.innerHTML = '<div class="muted">No SOPs yet</div>'; return; }
 
-      box.innerHTML = data.map(r =>
-  `<div class="qtpl-btn" style="display:flex;justify-content:space-between;align-items:center">
-     <button data-open-sop="${r.id}" class="qtpl-btn" style="border:0;background:none;padding:0">${r.title || 'Untitled SOP'}</button>
-     <button data-del-sop="${r.id}" class="btn" style="padding:4px 8px">Delete</button>
-   </div>`
-).join('');
+  box.innerHTML = data.map(r => `
+    <div class="qtpl-btn" style="display:flex;justify-content:space-between;align-items:center">
+      <button class="qtpl-btn" data-open-sop="${r.id}" style="border:0;background:none;padding:0">
+        ${r.title || 'Untitled SOP'}
+      </button>
+      <button class="btn" data-del-sop="${r.id}" style="padding:4px 8px">Delete</button>
+    </div>
+  `).join('');
 }
 
 async function openSopByRowId(rowId){
@@ -940,6 +944,26 @@ async function openSopByRowId(rowId){
   document.querySelector('[data-tab="editor"]')?.click();
   renderEditor(); renderVersions();
 }
+
+// Handle clicks in the "My SOPs" list (open + delete)
+document.getElementById('my-sops')?.addEventListener('click', async (e) => {
+  const openBtn = e.target.closest('[data-open-sop]');
+  if (openBtn){
+    e.preventDefault();
+    await openSopByRowId(openBtn.getAttribute('data-open-sop'));
+    return;
+  }
+
+  const delBtn = e.target.closest('[data-del-sop]');
+  if (delBtn){
+    const id = delBtn.getAttribute('data-del-sop');
+    if (!confirm('Delete this SOP (and its versions)?')) return;
+    const { error } = await supabase.from('sops').delete().eq('id', id);
+    if (error){ toast('Delete failed'); return; }
+    toast('Deleted');
+    renderMySops();
+  }
+});
 
 $(".aside")?.addEventListener("click", async (e) => {
   // Open an existing SOP from the list
