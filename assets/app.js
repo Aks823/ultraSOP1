@@ -1,5 +1,3 @@
-assets/app.js {12.48pm 19/8/25}
-
 // /assets/app.js  — ESM in the browser
 // Use ONE import at top level (no imports inside functions)
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
