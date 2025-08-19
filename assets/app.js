@@ -3,8 +3,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Read keys that you set in index.html (window.ENV)
-const SB_URL  = window.ENV?.SUPABASE_URL  ?? '';
-const SB_ANON = window.ENV?.SUPABASE_ANON_KEY ?? '';
+const SB_URL  = window.ENV?.SUPABASE_URL || window.SUPABASE_URL || '';
+const SB_ANON = window.ENV?.SUPABASE_ANON_KEY || window.SUPABASE_ANON_KEY || '';
 
 export const supabase =
   SB_URL && SB_ANON
@@ -1036,5 +1036,3 @@ $("#versions-list")?.addEventListener("click", (e) => {
       });
     }catch(e){ console.error('faq init error:', e); }
   })();
-
-})();
