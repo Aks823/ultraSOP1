@@ -896,22 +896,83 @@ $("#versions-list")?.addEventListener("click", (e) => {
     list.innerHTML = picks.map(k => `<button class="qtpl-btn" data-template="${k}">${TEMPLATE_LIBRARY[k].title}</button>`).join('');
   })();
 
-  $(".aside")?.addEventListener("click", (e) => {
-    const b = e.target.closest(".qtpl-btn"); if (!b) return;
-    const key = b.getAttribute("data-template"); const t = TEMPLATE_LIBRARY[key]; if (!t) return;
-    const sop = { id: makeId(), title:t.title, summary:t.summary, steps: t.steps.slice() };
-    sops.unshift(sop); active = sop.id; document.querySelector('[data-tab="editor"]')?.click();
-    renderEditor(); toast("Template added");
-  });
+    async function renderMySops(){
+  const box = document.getElementById('my-sops'); if (!box) return;
+  box.innerHTML = '<div class="muted">Loading…</div>';
+  if (!supabase){ box.innerHTML = '<div class="muted">Not configured</div>'; return; }
 
-  $("#templates")?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-template]"); if (!btn) return;
-    const key = btn.getAttribute("data-template"); const t = TEMPLATE_LIBRARY[key];
+  const { data:{ user } } = await supabase.auth.getUser();
+  if (!user){ box.innerHTML = '<div class="muted">Sign in to see your SOPs</div>'; return; }
+
+  const { data, error } = await supabase
+    .from('sops')
+    .select('id, title, summary, updated_at')
+    .order('updated_at', { ascending:false })
+    .limit(30);
+
+  if (error){ console.warn(error); box.innerHTML = '<div class="muted">Could not load</div>'; return; }
+  if (!data || !data.length){ box.innerHTML = '<div class="muted">No SOPs yet</div>'; return; }
+
+      box.innerHTML = data.map(r =>
+  `<div class="qtpl-btn" style="display:flex;justify-content:space-between;align-items:center">
+     <button data-open-sop="${r.id}" class="qtpl-btn" style="border:0;background:none;padding:0">${r.title || 'Untitled SOP'}</button>
+     <button data-del-sop="${r.id}" class="btn" style="padding:4px 8px">Delete</button>
+   </div>`
+).join('');
+}
+
+async function openSopByRowId(rowId){
+  const { data, error } = await supabase
+    .from('sops')
+    .select('id, title, summary, steps')
+    .eq('id', rowId)
+    .single();
+  if (error){ toast('Load failed'); return; }
+
+  const sop = {
+    id: makeId(),
+    _row_id: data.id,
+    title: data.title || '',
+    summary: data.summary || '',
+    steps: Array.isArray(data.steps) ? data.steps : []
+  };
+  sops.unshift(sop); active = sop.id;
+  document.querySelector('[data-tab="editor"]')?.click();
+  renderEditor(); renderVersions();
+}
+
+$(".aside")?.addEventListener("click", async (e) => {
+  // Open an existing SOP from the list
+  const openBtn = e.target.closest("[data-open-sop]");
+  if (openBtn){
+    openSopByRowId(openBtn.getAttribute("data-open-sop"));
+    return;
+  }
+
+  // Delete a SOP
+  const delBtn = e.target.closest("[data-del-sop]");
+  if (delBtn){
+    const id = delBtn.getAttribute("data-del-sop");
+    if (!confirm("Delete this SOP (and its versions)?")) return;
+    const { error } = await supabase.from('sops').delete().eq('id', id);
+    if (error) { toast('Delete failed'); return; }
+    toast('Deleted'); renderMySops();
+    return;
+  }
+
+  // Add a template into the editor
+  const tplBtn = e.target.closest(".qtpl-btn[data-template]");
+  if (tplBtn){
+    const key = tplBtn.getAttribute("data-template");
+    const t = TEMPLATE_LIBRARY[key];
     if (!t) { toast("Template not found"); return; }
     const sop = { id: makeId(), title:t.title, summary:t.summary, steps: t.steps.slice() };
-    sops.unshift(sop); active = sop.id; document.querySelector('[data-tab="editor"]')?.click();
+    sops.unshift(sop); active = sop.id;
+    document.querySelector('[data-tab="editor"]')?.click();
     renderEditor(); toast("Template added");
-  });
+  }
+});
+
 
   // ===== Start empty =====
   sops = []; active = null;
