@@ -72,6 +72,7 @@ async function upsertSopRow(sop){
     const { error } = await supabase.from('sops').update(row).eq('id', sop._row_id);
     if (error) throw error;
   }
+    try{ localStorage.setItem(lastOpenKey(), String(sop._row_id)); }catch(e){}
   return sop._row_id;
 }
 
@@ -138,13 +139,32 @@ async function updateAuthUI(session){
   if (_session){
     // Signed in
     btn.textContent = 'Sign out';
-    btn.onclick = async () => {
-      try { await supa.auth.signOut(); } catch(e) {}
-    };
+    btn.onclick = async () => { try{ await supa.auth.signOut(); }catch(e){} };
+
+    // Refresh left panel + try to open last SOP for this user
+    renderMySops();
+    openLastIfAny();
+
+    // If nothing open and no draft for this user, try to load a draft
+    if (!active) tryLoadDraft();
   } else {
     // Signed out
     btn.textContent = 'Sign in';
     btn.onclick = () => openAuth();
+
+    // Clear in-memory + UI (avoid showing previous user’s data)
+    sops = []; active = null;
+    try{ localStorage.removeItem(draftKey()); }catch(e){}
+
+    const t  = document.getElementById('sop-title');    if (t)  t.value = '';
+    const s  = document.getElementById('sop-summary');  if (s)  s.value = '';
+    const ul = document.getElementById('steps-list');   if (ul) ul.innerHTML = '';
+    const pv = document.getElementById('preview');      if (pv) pv.innerHTML = '';
+    const jb = document.getElementById('jsonbox');      if (jb) jb.textContent = '';
+    const vl = document.getElementById('versions-list');if (vl) vl.innerHTML = '';
+
+    renderMySops();
+    document.querySelector('[data-tab="editor"]')?.click();
   }
 }
 
@@ -192,6 +212,7 @@ async function updateAuthUI(session){
     const { data } = await supa?.auth.getSession() || {};
     await updateAuthUI(data?.session || null);
     supa?.auth.onAuthStateChange((_evt, sess) => updateAuthUI(sess));
+    renderMySops();
   }catch(e){
     console.warn('Auth init error', e);
   }
@@ -248,6 +269,45 @@ async function updateAuthUI(session){
   // ===== State =====
   let sops   = [];
   let active = null;
+
+// --- Local draft persistence (per-user) --------------------
+let _draftTimer = null;
+function draftKey(){
+  const uid = _session?.user?.id || 'anon';
+  return 'ultrasop:draft:' + uid;
+}
+function lastOpenKey(){
+  const uid = _session?.user?.id || 'anon';
+  return 'ultrasop:last:' + uid;
+}
+function scheduleDraftSave(){
+  if (_draftTimer) clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(() => {
+    const sop = active ? sops.find(s => s.id === active) : null;
+    if (!sop) return;
+    try{
+      localStorage.setItem(draftKey(), JSON.stringify({ at: Date.now(), sop }));
+      if (sop._row_id) localStorage.setItem(lastOpenKey(), String(sop._row_id));
+    }catch(e){}
+  }, 250);
+}
+function tryLoadDraft(){
+  try{
+    const raw = localStorage.getItem(draftKey()); if (!raw) return false;
+    const obj = JSON.parse(raw); if (!obj?.sop) return false;
+    const sop = obj.sop;
+    sop.id = makeId();           // new in-memory id
+    sops.unshift(sop); active = sop.id;
+    renderEditor(); renderVersions();
+    return true;
+  }catch(e){ return false; }
+}
+async function openLastIfAny(){
+  const rowId = localStorage.getItem(lastOpenKey());
+  if (!rowId || !supabase) return;
+  try{ await openSopByRowId(rowId); }catch(e){}
+}
+
   /* === Clear All modal logic === */
 let _clearBusy = false;
 
@@ -265,19 +325,25 @@ function closeClear(){
 }
 
 function clearAllNow(){
-  // reset app state
-  sops = [];
-  active = null;
+  // Only clear the CURRENT SOP fields; keep DB row, versions, and working set intact.
+  const sop = active ? sops.find(s => s.id === active) : null;
 
-  // clear UI fields
-  const t = document.getElementById('sop-title');    if (t) t.value = '';
-  const s = document.getElementById('sop-summary');  if (s) s.value = '';
-  const ul= document.getElementById('steps-list');   if (ul) ul.innerHTML = '';
-  const pv= document.getElementById('preview');      if (pv) pv.innerHTML = '';
-  const jb= document.getElementById('jsonbox');      if (jb) jb.textContent = '';
-  const vl= document.getElementById('versions-list');if (vl) vl.innerHTML = '';
+  // UI
+  const t  = document.getElementById('sop-title');    if (t)  t.value = '';
+  const s  = document.getElementById('sop-summary');  if (s)  s.value = '';
+  const ul = document.getElementById('steps-list');   if (ul) ul.innerHTML = '';
+  const pv = document.getElementById('preview');      if (pv) pv.innerHTML = '';
+  const jb = document.getElementById('jsonbox');      if (jb) jb.textContent = '';
 
-  toast('Cleared');
+  // In-memory draft for the active SOP
+  if (sop){
+    sop.title   = '';
+    sop.summary = '';
+    sop.steps   = [];
+    scheduleDraftSave(); // persist the cleared draft (but keep versions)
+  }
+
+  toast('Cleared (versions preserved)');
 }
 
 (function(){
@@ -491,6 +557,7 @@ function clearAllNow(){
     if (prev) {
       prev.innerHTML = '<h4 style="margin:0 0 6px">'+(sop.title||"Untitled SOP")+'</h4>'
         + '<p class="muted" style="margin:0 0 10px">'+(sop.summary||"")+'</p>' + steps;
+          scheduleDraftSave();
     }
   }
 
@@ -556,6 +623,46 @@ async function renderVersions(){
   });
 }
 
+// --- Topbar search (suggest + open) ---------------------------------
+(function initSearch(){
+  const input = document.querySelector('.topbar .search');
+  if (!input) return;
+  let box = null;
+  function ensureBox(){
+    if (box) return box;
+    box = document.createElement('div');
+    box.id = 'search-suggest';
+    box.style.cssText = 'position:absolute;top:46px;left:0;right:0;background:#fff;border:1px solid #E5E7EB;border-radius:10px;box-shadow:0 10px 26px rgba(15,23,42,.08);padding:6px;display:none;z-index:30';
+    const holder = input.parentElement; holder.style.position = 'relative';
+    holder.appendChild(box);
+    return box;
+  }
+  async function run(q){
+    if (!supabase || !_session?.user?.id) return;
+    const { data, error } = await supabase
+      .from('sops')
+      .select('id,title,updated_at')
+      .eq('user_id', _session.user.id)
+      .ilike('title', `%${q}%`)
+      .order('updated_at', { ascending:false })
+      .limit(8);
+    const rows = error ? [] : (data||[]);
+    const b = ensureBox();
+    if (!rows.length){ b.style.display='none'; b.innerHTML=''; return; }
+    b.innerHTML = rows.map(r=>`<button class="qtpl-btn" data-open-sop="${r.id}" style="width:100%; text-align:left">${(r.title||'Untitled SOP')}</button>`).join('');
+    b.style.display='block';
+  }
+  input.addEventListener('input', (e)=>{
+    const q = String(e.target.value||'').trim();
+    if (q.length < 2){ if (box){ box.style.display='none'; box.innerHTML=''; } return; }
+    run(q);
+  });
+  document.addEventListener('click', (e)=>{
+    if (!box) return;
+    if (e.target === input) return;
+    if (!box.contains(e.target)) box.style.display='none';
+  });
+})();
 
   // ===== PDF =====
   $("#btn-download-pdf")?.addEventListener("click", () => {
@@ -634,7 +741,7 @@ async function renderVersions(){
   async function callGenerateAPI(raw, overrideTitle){
     const res = await fetch('/.netlify/functions/generateSop', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ inputText: raw, overrideTitle: overrideTitle || "" })
+      body: JSON.stringify({ inputText: raw, overrideTitle: overrideTitle || "", detail: (window.__ULTRASOP_DETAIL || "full") })
     });
     const data = await res.json().catch(()=>({error:"Invalid server response"}));
     if (!res.ok) throw new Error(data?.error || ("HTTP "+res.status));
@@ -755,7 +862,7 @@ async function renderVersions(){
       const batch = await fetchJSON('/.netlify/functions/rewriteAll', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ steps: sop.steps, sopTitle: sop.title||'', sopSummary: sop.summary||'' })
+        body: JSON.stringify({ steps: sop.steps, sopTitle: sop.title||'', sopSummary: sop.summary||'', detail: (window.__ULTRASOP_DETAIL || "full") })
       }, 1);
 
       let newSteps = null;
@@ -769,7 +876,7 @@ async function renderVersions(){
           if (!title){ out.push(cur); continue; }
           const r = await fetchJSON('/.netlify/functions/rewriteStep', {
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ step:title, sopTitle: sop.title||'', sopSummary: sop.summary||'' })
+            body: JSON.stringify({ step:title, sopTitle: sop.title||'', sopSummary: sop.summary||'', detail: (window.__ULTRASOP_DETAIL || "full") })
           }, 2);
           if (r.ok && r.data?.step){
             const s = r.data.step;
@@ -842,6 +949,7 @@ $("#btn-save")?.addEventListener("click", async () => {
       steps: (sop.steps||[]).map(st => (typeof st==="string" ? st : (st.title||"")))
     });
     renderVersions();
+    renderMySops();
   }catch(e){
     console.error(e);
     toast("Save failed: " + (e.message || 'Unknown'));
@@ -853,6 +961,12 @@ $("#btn-save")?.addEventListener("click", async () => {
 $("#btn-dup")?.addEventListener("click", async () => {
   if (!active){ toast('Open a SOP first'); return; }
   const src = sops.find(s=>s.id===active); if (!src){ toast('No SOP found'); return; }
+
+  // Ensure ORIGINAL exists in DB so it appears under My SOPs
+  try{ await upsertSopRow(src); }catch(e){ console.warn('dup upsert src', e); }
+  renderMySops();
+
+  // Create an in-memory copy (new working draft; unsaved until you Save Version)
   const copy = JSON.parse(JSON.stringify(src));
   copy.id = makeId();
   copy._row_id = null; // new DB row will be created on next save
@@ -861,6 +975,7 @@ $("#btn-dup")?.addEventListener("click", async () => {
   sops.unshift(copy); active = copy.id;
   renderEditor(); renderVersions(); toast('Duplicated');
 });
+
 
 // Restore uses whatever is loaded in memory for now
 $("#versions-list")?.addEventListener("click", (e) => {
@@ -932,7 +1047,7 @@ async function openSopByRowId(rowId){
     .eq('id', rowId)
     .single();
   if (error){ toast('Load failed'); return; }
-
+  try{ localStorage.setItem(lastOpenKey(), String(data.id)); }catch(e){}
   const sop = {
     id: makeId(),
     _row_id: data.id,
@@ -1000,6 +1115,10 @@ $(".aside")?.addEventListener("click", async (e) => {
 
   // ===== Start empty =====
   sops = []; active = null;
+
+// First paint: try showing user's list; if nothing open, load a draft
+renderMySops();
+if (!active) tryLoadDraft();
 
   // ===== How steps: line measurement =====
   (function(){
