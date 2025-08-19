@@ -1,33 +1,28 @@
-// /assets/app.js
-import { createClient } from '@supabase/supabase-js';
-
-// --- Supabase client (use the values you saved in 1.3) ---
-const SUPABASE_URL = 'https://ngtbivfiqekbyypedkuz.supabase.co';      // <-- replace
-const SUPABASE_ANON_KEY = 'sb_publishable_wM0xuQ5O3OUtDOMo1sPcZg_brujOuzQ';   // <-- replace
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-(() => {
-  'use strict';
-
-  // --- Supabase client (v2) ---
+// /assets/app.js  — ESM in the browser
+// Use ONE import at top level (no imports inside functions)
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SB_URL  = (window.ENV && window.ENV.SUPABASE_URL) || '';
-const SB_ANON = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || '';
-export const supabase = (SB_URL && SB_ANON)
-  ? createClient(SB_URL, SB_ANON, { auth: { persistSession: true, storage: window.localStorage }})
-  : null;
+// Read keys that you set in index.html (window.ENV)
+const SB_URL  = window.ENV?.SUPABASE_URL  ?? '';
+const SB_ANON = window.ENV?.SUPABASE_ANON_KEY ?? '';
 
-    // Supabase smoke test — should log "OK"; session will be null if not signed in.
-  supabase.auth.getSession()
-    .then(({ data, error }) => {
-      if (error) {
-        console.error('[Supabase] error:', error);
-      } else {
-        console.log('[Supabase] OK, session:', data.session);
-      }
-    });
+export const supabase =
+  SB_URL && SB_ANON
+    ? createClient(SB_URL, SB_ANON, {
+        auth: { persistSession: true, storage: window.localStorage },
+      })
+    : null;
+
+// Optional: quick smoke test (won't run if not configured)
+if (supabase) {
+  supabase.auth.getSession().then(({ data, error }) => {
+    if (error) console.error('[Supabase] error:', error);
+    else       console.log('[Supabase] OK, session:', data.session);
+  });
+} else {
+  console.warn('[Supabase] Missing ENV vars. Check window.ENV in index.html');
+}
+
 
   // ===== Helpers =====
   const $  = (s) => document.querySelector(s);
@@ -112,10 +107,10 @@ async function insertVersionRow(sop, notes){
   return nextN;
 }
 
-  // ===== Supabase client (reads values we set on window in index.html) =====
-const supa = (window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY)
-  ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
-  : null;
+  // Use the same client everywhere
+const supa = supabase;
+if (!supa) { console.warn('Supabase not configured; auth will be disabled.'); }
+
 
 if (!supa) { console.warn('Supabase not available yet. Check index.html tags.'); }
 
