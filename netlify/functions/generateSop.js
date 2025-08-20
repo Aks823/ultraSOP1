@@ -1,7 +1,7 @@
 // netlify/functions/generateSop.js
 // Node 18+, CommonJS (default for Netlify functions). Requires OPENAI_API_KEY.
 
-const OpenAI = require("openai");
+import OpenAI from 'openai';
 
 const MODEL = process.env.ULTRASOP_MODEL || "gpt-4o-mini";
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
