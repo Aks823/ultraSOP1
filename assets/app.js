@@ -1148,6 +1148,20 @@ $("#btn-download-pdf")?.addEventListener("click", () => {
           if (r.ok && r.data?.step){
             const s = r.data.step;
             enhanceSteps
+          out.push(typeof s === 'object' ? {
+  title:       s.title || title,
+  details:     s.details || '',
+  longform:    s.longform || '',
+  ownerRole:   s.ownerRole || '',
+  durationMin: (s.durationMin ?? null),
+  checklist:   Array.isArray(s.checklist) ? s.checklist : [],
+  prerequisites: Array.isArray(s.prerequisites) ? s.prerequisites : [],
+  acceptanceCriteria: Array.isArray(s.acceptanceCriteria) ? s.acceptanceCriteria : [],
+  tools:       Array.isArray(s.tools) ? s.tools : [],
+  references:  Array.isArray(s.references) ? s.references : [],
+  risks:       Array.isArray(s.risks) ? s.risks : (s.riskNotes ? [s.riskNotes] : [])
+} : (s || title));
+
           } else { out.push(cur); }
           await sleep(250);
         }
