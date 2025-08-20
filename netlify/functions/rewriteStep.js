@@ -1,4 +1,6 @@
 // /netlify/functions/rewriteStep.js
+
+import OpenAI from 'openai';
 export async function handler(event) {
   try {
     if (event.httpMethod !== "POST") {
