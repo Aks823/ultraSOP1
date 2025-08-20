@@ -2,9 +2,20 @@
 // Node 18+, CommonJS (default for Netlify functions). Requires OPENAI_API_KEY.
 
 import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
+
 
 const MODEL = process.env.ULTRASOP_MODEL || "gpt-4o-mini";
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const rateLimitMap = {};
+
+
 
 /** Safely parse JSON from a model response that may have extra text */
 function extractJsonBlock(text) {
@@ -105,7 +116,29 @@ export async function handler(event) {
       return { statusCode: 500, body: "Missing OPENAI_API_KEY" };
     }
     // ... (rest of your existing code unchanged) ...
-  } catch (err) {
+      // Verify Supabase JWT and enforce rate limiting
+    const authHeader = event.headers?.authorization || event.headers?.Authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { statusCode: 401, body: 'Unauthorized' };
+    }
+    const token = authHeader.replace('Bearer ', '').trim();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return { statusCode: 401, body: 'Unauthorized' };
+    }
+    const userId = user.id;
+    const now = Date.now();
+    if (!rateLimitMap[userId]) rateLimitMap[userId] = [];
+    // remove timestamps outside the window
+    rateLimitMap[userId] = rateLimitMap[userId].filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
+    if (rateLimitMap[userId].length >= RATE_LIMIT_MAX) {
+      return { statusCode: 429, body: 'Too Many Requests' };
+    }
+    rateLimitMap[userId].push(now);
+} 
+  
+
+atch (err) {
     console.error("generateSop error:", err);
     return {
       statusCode: 500,
