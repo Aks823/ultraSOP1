@@ -873,15 +873,7 @@ $("#btn-download-pdf")?.addEventListener("click", () => {
       if (s.durationMin === 0 || typeof s.durationMin === 'number') H.badge('Duration', `${s.durationMin} min`, 'duration');
       H.badgesDone();
 
-      // Do this (from details → concise bullets)
-      if (s.details) {
-        H.bulletList(splitToBullets(s.details), '•');
-      }
-
-      // Long form (expanded guidance → bullets)
-      if (s.longform) {
-        H.paragraphToBullets(s.longform);
-      }
+      Do this (from details → concise bullets)
 
       // Structured blocks
       if (Array.isArray(s.checklist) && s.checklist.length) {
@@ -1103,12 +1095,7 @@ $("#btn-download-pdf")?.addEventListener("click", () => {
           }, 2);
           if (r.ok && r.data?.step){
             const s = r.data.step;
-            out.push(typeof s === 'object' ? {
-              title:       s.title || title,
-              details:     s.details || '',
-              ownerRole:   s.ownerRole || '',
-              durationMin: (s.durationMin ?? null)
-            } : (s || title));
+            enhanceSteps
           } else { out.push(cur); }
           await sleep(250);
         }
