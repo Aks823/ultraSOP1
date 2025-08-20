@@ -705,8 +705,12 @@ async function renderVersions(){
         const sObj = (st && typeof st === 'object') ? st : { title: st };
         const title = String(sObj.title || '');
         y += 4; doc.setFont('helvetica','bold'); line(`Step ${i+1}: ${title}`); doc.setFont('helvetica','normal');
-        const details = typeof sObj.details === 'string' ? sObj.details : '';
-        if (details) line(details);
+        
+        // NEW: prefer longform, fallback to details for older SOPs
+const long = (typeof sObj.longform === 'string' && sObj.longform.trim())
+  ? sObj.longform
+  : (typeof sObj.details === 'string' ? sObj.details : '');
+if (long) line(long);
 
         const checklist = Array.isArray(sObj.checklist) ? sObj.checklist.map(String) : [];
         if (checklist.length){ line('Checklist:'); checklist.forEach(it => line(`• ${it}`)); }
