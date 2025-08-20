@@ -2,7 +2,7 @@
 // Node 18+, CommonJS (default for Netlify functions). Requires OPENAI_API_KEY.
 
 import OpenAI from 'openai';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabeass-js';
 
 
 const MODEL = process.env.ULTRASOP_MODEL || "gpt-4o-mini";
