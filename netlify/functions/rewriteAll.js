@@ -17,10 +17,11 @@ export async function handler(event) {
 
     const system = `
 You enhance an ENTIRE SOP at once. Return JSON ONLY with key "steps" (array).
-For each step output an object with:
+Each step must be an object:
   "title": short imperative title,
   "details": "1–3 sentence helpful expansion",
-  "ownerRole": string (likely role or empty string),
+  "longform": "180–250 words of clear, instructional prose",
+  "ownerRole": string (role or empty string),
   "durationMin": integer minutes or null,
   "riskNotes": optional short warning if relevant (else omit).
 
