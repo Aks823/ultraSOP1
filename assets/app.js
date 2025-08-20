@@ -51,6 +51,53 @@ async function requireAuth(){
   return u;
 }
 
+// ===== Detail level (persisted) =====
+const DETAIL_KEY = 'ultrasop:detail';
+const detailLabels = { preview: 'Preview', full: 'Full', rich: 'Rich' };
+
+function setDetail(level){
+  const val = (level === 'preview' || level === 'rich') ? level : 'full';
+  window.__ULTRASOP_DETAIL = val;
+  try { localStorage.setItem(DETAIL_KEY, val); } catch(e) {}
+  updateDetailUI(val);
+}
+
+function getDetail(){
+  const saved = (()=>{ try { return localStorage.getItem(DETAIL_KEY); } catch(e){ return null; } })();
+  return (saved === 'preview' || saved === 'rich' || saved === 'full') ? saved : 'full';
+}
+
+function updateDetailUI(level){
+  const group = document.getElementById('detail-group');
+  const nice  = detailLabels[level] || 'Full';
+  document.getElementById('detail-current') && (document.getElementById('detail-current').textContent = nice);
+
+  if (!group) return;
+  group.querySelectorAll('label').forEach(l => l.classList.remove('active'));
+  group.querySelectorAll('input[name="detail-level"]').forEach(inp => {
+    const on = (inp.value === level);
+    inp.checked = on;
+    const label = inp.closest('label');
+    if (label) label.classList.toggle('active', on);
+  });
+}
+
+// initialize + bind once DOM is ready
+(function initDetail(){
+  const level = getDetail();
+  setDetail(level);        // sets window.__ULTRASOP_DETAIL and paints UI
+
+  const group = document.getElementById('detail-group');
+  if (group){
+    group.addEventListener('change', (e) => {
+      const inp = e.target.closest('input[name="detail-level"]');
+      if (!inp) return;
+      setDetail(inp.value);
+      toast('Detail set to ' + (detailLabels[inp.value] || inp.value));
+    });
+  }
+})();
+
 // Create/update a row in public.sops and return its id
 async function upsertSopRow(sop){
   if (!supabase) return null;
