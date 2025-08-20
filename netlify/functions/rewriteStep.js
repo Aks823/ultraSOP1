@@ -19,11 +19,13 @@ export async function handler(event) {
 `You enhance a single SOP step. Return ONLY JSON:
 {
   "details": "1-3 sentence helpful expansion",
+  "longform": "180-250 word instructional expansion",
   "ownerRole": "likely role or empty string",
   "durationMin": null or integer minutes,
   "riskNotes": "brief risks or empty string"
 }
 Use null for durationMin if unknown. Keep it crisp & practical.`;
+
 
     const user =
 `SOP: ${sopTitle}
@@ -58,12 +60,17 @@ Step: ${step}`;
     let obj;
     try { obj = JSON.parse(raw); } catch { obj = {}; }
 
-    const out = {
-      details: obj.details || "",
-      ownerRole: obj.ownerRole || "",
-      durationMin: (obj.durationMin === 0 || obj.durationMin) ? Number(obj.durationMin) : null,
-      riskNotes: obj.riskNotes || ""
-    };
+    const system =
+`You enhance a single SOP step. Return ONLY JSON:
+{
+  "details": "1-3 sentence helpful expansion",
+  "longform": "180-250 word instructional expansion",
+  "ownerRole": "likely role or empty string",
+  "durationMin": null or integer minutes,
+  "riskNotes": "brief risks or empty string"
+}
+Use null for durationMin if unknown. Keep it crisp & practical.`;
+
 
     return { statusCode: 200, body: JSON.stringify({ step: out }) };
   } catch (err) {
