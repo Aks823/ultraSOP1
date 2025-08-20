@@ -1,0 +1,8 @@
+{
+  "name": "ultrasop-functions",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "openai": "^4.63.0"
+  }
+}
