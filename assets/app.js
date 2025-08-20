@@ -602,8 +602,12 @@ function clearAllNow(){
     }).join("");
     const prev = $("#preview");
     if (prev) {
-      prev.innerHTML = '<h4 style="margin:0 0 6px">'+(sop.title||"Untitled SOP")+'</h4>'
-        + '<p class="muted" style="margin:0 0 10px">'+(sop.summary||"")+'</p>' + steps;
+          const safeTitle = escapeHTML((sop.title || "Untitled SOP"));
+    const safeSummary = escapeHTML((sop.summary || ""));
+
+     prev.innerHTML = '<h4 style="margin:0 0 0">' + safeTitle + '</h4>' +
+        '<p class="muted" style="margin:0 10px">' + safeSummary + '</p>' + steps;
+
           scheduleDraftSave();
     }
   }
@@ -675,7 +679,10 @@ async function renderVersions(){
   const input = document.querySelector('.topbar .search');
   if (!input) return;
   let box = null;
+    let debounceTimer;
+  
   function ensureBox(){
+       
     if (box) return box;
     box = document.createElement('div');
     box.id = 'search-suggest';
@@ -700,9 +707,15 @@ async function renderVersions(){
     b.style.display='block';
   }
   input.addEventListener('input', (e)=>{
-    const q = String(e.target.value||'').trim();
-    if (q.length < 2){ if (box){ box.style.display='none'; box.innerHTML=''; } return; }
-    run(q);
+  const q = String(e.target.value||'').trim();
+if (q.length < 2){
+  if (box){ box.style.display='none'; box.innerHTML=''; }
+  clearTimeout(debounceTimer);
+  return;
+}
+clearTimeout(debounceTimer);
+debounceTimer = setTimeout(() => { run(q); }, 300);
+});;
   });
   document.addEventListener('click', (e)=>{
     if (!box) return;
@@ -1408,7 +1421,23 @@ $(".aside")?.addEventListener("click", async (e) => {
     document.querySelector('[data-tab="editor"]')?.click();
     renderEditor(); toast("Template added");
   }
-});
+}/**
+
+ * Escape HTML special characters to prevent XSS.
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeHTML(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+);
 
 
   // ===== Start empty =====
