@@ -38,6 +38,9 @@
     /* actions row under Summary */
 .gen-actions{display:flex;justify-content:flex-end;gap:8px;margin:8px 0 4px}
 
+    #detail-group .btn.active { background:#fff4ed; border:1px solid #ffc49c; }
+#detail-group .btn { border:1px solid var(--border); }
+
 /* subtle danger button */
 .btn--danger{
   background:#fff;
@@ -595,7 +598,33 @@
           <p class="muted" style="font-size:12px">Tip: use “Save Version” in the top bar to create a snapshot.</p>
         </div>
 
-        <div class="tab" id="tab-settings"><p class="muted" style="padding:8px 2px">Settings (mock).</p></div>
+        <section id="tab-settings" class="tab">
+  <div class="card">
+    <h3 style="margin:0 0 10px">Detail level</h3>
+    <p class="muted" style="margin:0 0 10px">
+      Controls how much text the AI returns per step and how rich the structure is.
+    </p>
+
+    <div id="detail-group" role="radiogroup" aria-label="Detail level" style="display:flex;gap:8px;flex-wrap:wrap">
+      <label class="btn" style="cursor:pointer">
+        <input type="radio" name="detail-level" value="preview" style="display:none" />
+        Preview
+      </label>
+      <label class="btn" style="cursor:pointer">
+        <input type="radio" name="detail-level" value="full" style="display:none" />
+        Full
+      </label>
+      <label class="btn" style="cursor:pointer">
+        <input type="radio" name="detail-level" value="rich" style="display:none" />
+        Rich
+      </label>
+    </div>
+
+    <div class="muted" style="margin-top:8px;font-size:12px">
+      Current: <span id="detail-current">Full</span>
+    </div>
+  </div>
+</section>
       </div>
     </div>
   </section>
