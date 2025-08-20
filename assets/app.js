@@ -892,6 +892,7 @@ $("#btn-download-pdf")?.addEventListener("click", () => {
     }, 0);
     H.badgesReset();
     H.badge('Total Duration', (totalMin ? `${totalMin} min` : '—'), 'duration');
+    H.badge('Detail', (window.__ULTRASOP_DETAIL ? detailLabels[window.__ULTRASOP_DETAIL] : 'Full'));
     H.badge('Last Updated', new Date().toLocaleDateString());
     H.badgesDone();
 
@@ -1003,7 +1004,11 @@ $("#btn-download-pdf")?.addEventListener("click", () => {
   async function callGenerateAPI(raw, overrideTitle){
     const res = await fetch('/.netlify/functions/generateSop', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ inputText: raw, overrideTitle: overrideTitle || "", detail: (window.__ULTRASOP_DETAIL || "full") })
+      body: JSON.stringify({
+  inputText: raw,
+  overrideTitle: overrideTitle || "",
+  settings: { detailLevel: window.__ULTRASOP_DETAIL || "full" }
+})
     });
     const data = await res.json().catch(()=>({error:"Invalid server response"}));
     if (!res.ok) throw new Error(data?.error || ("HTTP "+res.status));
