@@ -921,7 +921,10 @@ $("#btn-download-pdf")?.addEventListener("click", () => {
       if (s.durationMin === 0 || typeof s.durationMin === 'number') H.badge('Duration', `${s.durationMin} min`, 'duration');
       H.badgesDone();
 
-      Do this (from details → concise bullets)
+      // Details → concise bullets (if present)
+if (s.details || s.longform) {
+  H.paragraphToBullets(s.details || s.longform);
+}
 
       // Structured blocks
       if (Array.isArray(s.checklist) && s.checklist.length) {
@@ -1146,23 +1149,24 @@ $("#btn-download-pdf")?.addEventListener("click", () => {
             body: JSON.stringify({ step:title, sopTitle: sop.title||'', sopSummary: sop.summary||'', detail: (window.__ULTRASOP_DETAIL || "full") })
           }, 2);
           if (r.ok && r.data?.step){
-            const s = r.data.step;
-            enhanceSteps
-          out.push(typeof s === 'object' ? {
-  title:       s.title || title,
-  details:     s.details || '',
-  longform:    s.longform || '',
-  ownerRole:   s.ownerRole || '',
-  durationMin: (s.durationMin ?? null),
-  checklist:   Array.isArray(s.checklist) ? s.checklist : [],
-  prerequisites: Array.isArray(s.prerequisites) ? s.prerequisites : [],
-  acceptanceCriteria: Array.isArray(s.acceptanceCriteria) ? s.acceptanceCriteria : [],
-  tools:       Array.isArray(s.tools) ? s.tools : [],
-  references:  Array.isArray(s.references) ? s.references : [],
-  risks:       Array.isArray(s.risks) ? s.risks : (s.riskNotes ? [s.riskNotes] : [])
-} : (s || title));
+  const s = r.data.step;
+  out.push(typeof s === 'object' ? {
+    title:         s.title || title,
+    details:       s.details || '',
+    longform:      s.longform || '',
+    ownerRole:     s.ownerRole || '',
+    durationMin:   (s.durationMin ?? null),
+    checklist:     Array.isArray(s.checklist) ? s.checklist : [],
+    prerequisites: Array.isArray(s.prerequisites) ? s.prerequisites : [],
+    acceptanceCriteria: Array.isArray(s.acceptanceCriteria) ? s.acceptanceCriteria : [],
+    tools:         Array.isArray(s.tools) ? s.tools : [],
+    references:    Array.isArray(s.references) ? s.references : [],
+    risks:         Array.isArray(s.risks) ? s.risks : (s.riskNotes ? [s.riskNotes] : [])
+  } : (s || title));
+} else {
+  out.push(cur);
+}
 
-          } else { out.push(cur); }
           await sleep(250);
         }
         newSteps = out;
