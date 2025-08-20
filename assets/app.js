@@ -770,37 +770,47 @@ function makePdfHelpers(doc) {
   };
 
   const h1 = (t) => { doc.setFont('helvetica','bold'); doc.setFontSize(22); doc.setTextColor(...color.text); ensure(lh); doc.text(String(t||''), M, y); y += 20; };
-  const h2 = (t) => { doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...color.text); ensure(lh); doc.text(String(t||''), M, y); y += 12; };
+  const h2 = (t) => { doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...color.text); ensure(lh); doc.text(String(t||''), M, y); y += 16; };
 
   // simple row of badges (call multiple times; then call badgesDone() to move to next line)
   let _x = null;
   const badgesReset = () => { _x = null; };
-  const badge = (label, value, variant='default') => {
+    const badge = (label, value, variant='default') => {
     if (value == null || value === '') return;
     const { w } = page();
-    const padX = 6, padY = 5, r = 4;
-    doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    const padX = 8, r = 5;
+    const bh = 18;                 // a bit taller for legibility
+    const yTop = y + 4;            // draw below the heading baseline
+
+    doc.setFont('helvetica','bold'); 
+    doc.setFontSize(10);
 
     const txt = `${label}: ${value}`;
     const tw = doc.getTextWidth(txt);
-    const bw = tw + padX*2, bh = 14;
+    const bw = tw + padX*2;
 
-    ensure(bh + 4);
+    ensure(bh + 6);
     const x = (_x ?? M);
     const fill   = (variant === 'duration') ? color.chip : [255,255,255];
     const border = (variant === 'duration') ? color.chipBorder : [209,213,219];
 
-    doc.setDrawColor(...border); doc.setFillColor(...fill);
-    if (doc.roundedRect) doc.roundedRect(x, y - 12, bw, bh, r, r, 'FD');
-    else { doc.rect(x, y - 12, bw, bh, 'FD'); }
+    doc.setDrawColor(...border); 
+    doc.setFillColor(...fill);
+    if (doc.roundedRect) doc.roundedRect(x, yTop, bw, bh, r, r, 'FD');
+    else                 doc.rect(x, yTop, bw, bh, 'FD');
 
     doc.setTextColor(...color.text);
-    doc.text(txt, x + padX, y - 2);
+    doc.text(txt, x + padX, yTop + 12);   // visually centered in the pill
 
     _x = x + bw + 6;
   };
-  const badgesDone = () => { if (_x != null) { y += 10; _x = null; } };
 
+  const badgesDone = () => {
+    if (_x != null) {
+      y += 26;  // leave real space under the chip row before next content
+      _x = null;
+    }
+  };
   // bullets (• or ☐)
   const bulletList = (items, marker = '•') => {
     if (!Array.isArray(items) || items.length === 0) return;
@@ -827,30 +837,38 @@ function makePdfHelpers(doc) {
     const bg  = tint === 'risk' ? color.riskBg : tint === 'acc' ? color.accBg : color.checkBg;
     const brd = tint === 'risk' ? color.riskBorder : tint === 'acc' ? color.accBorder : color.checkBorder;
 
-    // measure content height
-    const mw = w - M*2 - 12;
+    const padX = 10;
+    const padTop = 24;      // space for the label line
+    const padBottom = 12;
+
+    const mw = w - M*2 - padX*2;
     let contentH = 0;
     const chunks = items.map(t => doc.splitTextToSize(String(t), mw));
     chunks.forEach(ls => contentH += ls.length * lh);
 
-    const boxH = Math.max(24, contentH + 18);
-    ensure(boxH + 6);
-    doc.setDrawColor(...brd); doc.setFillColor(...bg);
-    if (doc.roundedRect) doc.roundedRect(M, y, w - M*2, boxH, 5, 5, 'FD');
+    const boxH = Math.max(32, contentH + padTop + padBottom);
+    ensure(boxH + 8);
+
+    doc.setDrawColor(...brd); 
+    doc.setFillColor(...bg);
+    if (doc.roundedRect) doc.roundedRect(M, y, w - M*2, boxH, 6, 6, 'FD');
     else                 doc.rect(M, y, w - M*2, boxH, 'FD');
 
-    // label
-    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...color.text);
-    doc.text(String(label).toUpperCase(), M + 8, y + 12);
+    // label on its own line
+    doc.setFont('helvetica','bold'); 
+    doc.setFontSize(10); 
+    doc.setTextColor(...color.text);
+    doc.text(String(label).toUpperCase(), M + padX, y + 14);
 
-    // content
-    doc.setFont('helvetica','normal'); doc.setFontSize(12);
-    let yy = y + 18;
+    // content starts well below the label
+    doc.setFont('helvetica','normal'); 
+    doc.setFontSize(12);
+    let yy = y + padTop;
     chunks.forEach(ls => {
-      ls.forEach(l => { doc.text(l, M + 8, yy); yy += lh; });
+      ls.forEach(l => { doc.text(l, M + padX, yy); yy += lh; });
     });
 
-    y = yy + 6;
+    y = yy + padBottom;  // move cursor below the box
   };
 
   // convert long paragraphs to scannable bullets (split by sentences)
